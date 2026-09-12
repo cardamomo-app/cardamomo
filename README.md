@@ -11,6 +11,7 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Drag a card's top handle within or between columns. Drop above/below another card to become its sibling, or beside a parent in the preceding column to attach as its child. The whole branch travels together; Escape cancels a drag.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
 - The moon/sun beside the zoom controls switches between light and dark mode. The preference is saved in this browser.
+- Hover the outgoing connector to highlight it, then click to collapse a card's children. The small square expands the branch again. Nested folds and their saved state are preserved; hidden cards remain in Markdown exports and travel with their parent when dragged.
 - Select text and press Cmd/Ctrl + B for bold or Cmd/Ctrl + I for italic. These shortcuts add Markdown markers; selecting the marked text and repeating the shortcut removes that formatting. Typing undo also undoes formatting.
 - Enter creates a paragraph break; Shift + Enter inserts a Markdown hard line break. The browser handles paragraphs, line breaks, and typing undo directly in a native editable surface.
 - Cmd/Ctrl + Enter splits at the cursor into a card below, with the remaining text and focus in the new card. Existing children stay with the upper card. Selected text stays in the lower card. Undo restores the split, including Cmd/Ctrl + Z immediately after splitting.

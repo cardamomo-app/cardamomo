@@ -55,3 +55,9 @@ strong,b{font-weight:500}em,i{font-style:italic}code,pre{font-family:inherit}.ca
 .drop-child{outline:2px solid var(--accent);outline-offset:5px}
 .drag-label{position:absolute;top:-34px;left:0;white-space:nowrap;padding:6px 10px;border-radius:4px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;box-shadow:0 3px 12px #0002}
 .drag-ghost.invalid-drop{opacity:.45}
+.branch-toggle{position:absolute;height:28px;padding:0;transform:translateY(-50%);background:none;cursor:pointer;z-index:1}
+.branch-toggle::before{content:'';position:absolute;left:0;right:0;top:50%;height:1.2px;background:var(--line);transform:translateY(-50%);transition:height .12s,background .12s;pointer-events:none}
+.branch-toggle:hover::before,.branch-toggle:focus-visible::before{height:3px;background:var(--accent)}
+.branch-toggle:focus-visible{outline:none}
+.branch-toggle.collapsed::after{content:'';position:absolute;left:100%;top:50%;width:16px;height:16px;border:1.5px solid var(--accent);border-radius:2px;background:var(--paper);transform:translate(-50%,-50%);transition:background .12s,box-shadow .12s}
+.branch-toggle.collapsed:hover::after,.branch-toggle.collapsed:focus-visible::after{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 15%,transparent)}
