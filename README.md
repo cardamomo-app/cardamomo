@@ -10,6 +10,7 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Right: add a first child. Add more children using the vertical sibling controls. No left-side or horizontal-connector plus buttons.
 - Drag a card's top handle to move it within its column. Its children stay attached.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
+- The moon/sun beside the zoom controls switches between light and dark mode. The preference is saved in this browser.
 - Select text and press Cmd/Ctrl + B for bold or Cmd/Ctrl + I for italic. These shortcuts add Markdown markers; selecting the marked text and repeating the shortcut removes that formatting. Typing undo also undoes formatting.
 - Enter creates a paragraph break; Shift + Enter inserts a Markdown hard line break. The browser handles paragraphs, line breaks, and typing undo directly in a native editable surface.
 - Export traverses each root card, its descendants in order, then the next root.
