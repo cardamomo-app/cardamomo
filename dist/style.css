@@ -1,7 +1,7 @@
-@font-face{font-family:'DM Mono';src:url('/assets/DMMono-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'DM Mono';src:url('/assets/DMMono-Medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:'DM Mono';src:url('/assets/DMMono-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
-@font-face{font-family:'DM Mono';src:url('/assets/DMMono-MediumItalic.ttf') format('truetype');font-weight:500;font-style:italic;font-display:swap}
+@font-face{font-family:'DM Mono';src:url('./assets/DMMono-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'DM Mono';src:url('./assets/DMMono-Medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'DM Mono';src:url('./assets/DMMono-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'DM Mono';src:url('./assets/DMMono-MediumItalic.ttf') format('truetype');font-weight:500;font-style:italic;font-display:swap}
 :root{font-family:'DM Mono','SFMono-Regular',Consolas,monospace;color:#45463f;background:#f6f5f0;font-synthesis:none;font-size:16px;--paper:#f6f5f0;--ink:#45463f;--muted:#86867b;--line:#d8d9ce;--accent:#6f7c5b}
 strong,b{font-weight:500}em,i{font-style:italic}code,pre{font-family:inherit}.card .card-content :is(h1,h2,h3,h4,h5,h6,th){font-weight:500}
 :root{color-scheme:light}
