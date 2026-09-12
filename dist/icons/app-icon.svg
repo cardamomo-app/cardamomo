@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#f5f3ed"/>
+  <!-- The mark fits inside the central 80% safe circle for platform masks. -->
+  <g fill="none" stroke="#6b7759" stroke-width="1.7">
+    <ellipse cx="16" cy="16" rx="8" ry="11" transform="rotate(32 16 16)"/>
+    <path d="M21 7Q10 16 11 25M21 7Q19 19 11 25"/>
+  </g>
+</svg>

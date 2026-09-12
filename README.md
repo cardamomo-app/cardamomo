@@ -38,4 +38,11 @@ Assets use relative paths, so the same files work at a domain root or under a
 repository path. Drafts are stored separately for each website origin: export a
 Markdown file from one address and open it at the other to move your writing.
 
+Browser and install icons use the existing Cardamomo mark: SVG and 16/32/48px
+favicons, a 180px Apple touch icon, 192/512px app icons, and full-bleed 512/1024px
+maskable icons. The manifest opens installed copies in a standalone window at
+the same website address. Icon sources are in `dist/icons/`; regenerate the PNGs
+and ICO with `node scripts/generate-icons.cjs` when `sharp` is installed locally.
+Generated files are committed, so publishing requires no image build step.
+
 Bundled assets: DM Mono regular and medium, each with normal and italic faces (SIL Open Font License), marked 15.0.12 (MIT), DOMPurify 3.2.6 (Apache-2.0 OR MPL-2.0).
