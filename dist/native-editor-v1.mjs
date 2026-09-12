@@ -49,7 +49,7 @@ export function readMarkdownEditor(editor) {
 }
 
 export function focusMarkdownEditor(editor) {
-  editor.focus();
+  editor.focus({preventScroll:true});
   const last = editor.lastElementChild || editor;
   const range = editor.ownerDocument.createRange();
   if (last.textContent === '') range.setStart(last, 0);

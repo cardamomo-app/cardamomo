@@ -13,7 +13,7 @@ export function readEditorSplit(editor) {
 }
 
 export function focusEditorStart(editor) {
-  editor.focus();
+  editor.focus({preventScroll:true});
   const range=editor.ownerDocument.createRange();
   range.selectNodeContents(editor.firstElementChild||editor);range.collapse(true);
   const selection=editor.ownerDocument.getSelection();selection.removeAllRanges();selection.addRange(range);

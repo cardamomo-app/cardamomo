@@ -1,11 +1,11 @@
 import { importMarkdown } from './markdown-import-v2.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs';
-import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs';
+import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
 import { installFocusMode } from './focus-mode-v1.mjs';
-import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs';
+import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
 import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
@@ -54,7 +54,7 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
    }else plus(right+38,p.y+p.h/2,c.id,'right','Add child to the right');
  }
 }
-function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);reveal(c.id);}
+function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
 function startEditing(id) {
   if(editing===id)return;
   finishEditing();
@@ -101,7 +101,7 @@ function startEditing(id) {
   layout();focusMarkdownEditor(editor);updateStats();reveal(id);
 }
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
-function reveal(id,instant=false){if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:instant||matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
+function reveal(id){if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
 function replaceDraft(next,message){
   finishEditing();checkpoint();state=next;
@@ -182,8 +182,8 @@ document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||
 $('#undo').addEventListener('click',()=>undo());$('#export').addEventListener('click',download);$('#document-title').addEventListener('focus',checkpoint);$('#document-title').addEventListener('input',e=>{state.title=e.target.value;scheduleSave();});$('#document-title').addEventListener('blur',()=>{if(!state.title.trim()){state.title='Untitled';$('#document-title').value=state.title;}save();});
 function setZoom(v){finishEditing();zoom=Math.max(.5,Math.min(1.5,v));$('#reset-view').textContent=Math.round(zoom*100)+'%';layout();}$('#zoom-in').addEventListener('click',()=>setZoom(zoom+.1));$('#zoom-out').addEventListener('click',()=>setZoom(zoom-.1));$('#reset-view').addEventListener('click',()=>{setZoom(1);viewport.scrollTo({left:0,top:0,behavior:'smooth'});});
 $('#help').addEventListener('click',()=>$('#guide').showModal());$('.close-guide').addEventListener('click',()=>$('#guide').close());$('#guide').addEventListener('click',e=>{if(e.target===$('#guide')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
-window.addEventListener('resize',()=>{layout();if(editing)reveal(editing,true);});window.addEventListener('pagehide',save);window.addEventListener('beforeunload',e=>{save();if(storageFailed&&state.cards.some(c=>c.text)){e.preventDefault();e.returnValue='';}});render();save();document.fonts.ready.then(layout);
-installFocusMode({button:$('#focus-toggle'),notify:toast,onChange:()=>requestAnimationFrame(()=>{layout();if(editing){cardsEl.querySelector('.card-editor')?.focus({preventScroll:true});reveal(editing,true);}})});
+window.addEventListener('resize',()=>{layout();if(editing)reveal(editing);});window.addEventListener('pagehide',save);window.addEventListener('beforeunload',e=>{save();if(storageFailed&&state.cards.some(c=>c.text)){e.preventDefault();e.returnValue='';}});render();save();document.fonts.ready.then(layout);
+installFocusMode({button:$('#focus-toggle'),notify:toast,onChange:()=>requestAnimationFrame(()=>{layout();if(editing){cardsEl.querySelector('.card-editor')?.focus({preventScroll:true});reveal(editing);}})});
 if(document.modelContext?.registerTool){const lifecycle=new AbortController();const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
  register({name:'read_draft',title:'Read draft',description:'Read the current Cardamomo cards in Markdown export order.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(){return{title:state.title,cards:orderedCards(state).map(c=>({...c,column:depth(state,c)+1})),markdown:exportMarkdown(state)};}});
  register({name:'add_card',title:'Add card',description:'Create a sibling before or after a card, or its first child to the right.',inputSchema:{type:'object',properties:{cardId:{type:'string'},direction:{type:'string',enum:['before','after','right']},markdown:{type:'string'}},required:['cardId','direction','markdown'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute(input){if(!input||typeof input.markdown!=='string'||!['before','after','right'].includes(input.direction)||!state.cards.some(c=>c.id===input.cardId))throw Error('An existing card, valid direction, and Markdown string are required.');if(input.direction==='right'&&siblings(state,input.cardId).length)throw Error('This card already has children. Add a sibling above or below one of its children.');finishEditing();checkpoint();const c=addCard(state,input.cardId,input.direction);c.text=input.markdown;save();render();reveal(c.id);return{id:c.id,column:depth(state,c)+1};}});window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}
