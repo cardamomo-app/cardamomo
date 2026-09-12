@@ -1,4 +1,5 @@
 import { importMarkdown } from './markdown-import-v1.mjs';
+import { formatMarkdownSelection } from './formatting-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs';
 import { newCard, siblings, depth, addCard, moveCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v2.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
@@ -47,6 +48,13 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) && ['b','i'].includes(e.key.toLowerCase())) {
+      e.preventDefault();e.stopPropagation();
+      if(formatMarkdownSelection(editor,e.key.toLowerCase()==='b'?'bold':'italic')) {
+        c.text=readMarkdownEditor(editor);scheduleSave();layout();
+      }
+      return;
+    }
     if(e.key==='Escape'&&!e.isComposing){
       e.preventDefault();e.stopPropagation();finishEditing();
       cardsEl.querySelector(`[data-id="${id}"]`)?.focus();
