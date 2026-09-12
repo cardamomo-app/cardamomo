@@ -61,3 +61,14 @@ strong,b{font-weight:500}em,i{font-style:italic}code,pre{font-family:inherit}.ca
 .branch-toggle:focus-visible{outline:none}
 .branch-toggle.collapsed::after{content:'';position:absolute;left:100%;top:50%;width:16px;height:16px;border:1.5px solid var(--accent);border-radius:2px;background:var(--paper);transform:translate(-50%,-50%);transition:background .12s,box-shadow .12s}
 .branch-toggle.collapsed:hover::after,.branch-toggle.collapsed:focus-visible::after{background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 15%,transparent)}
+#focus-toggle svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+#focus-toggle .exit-focus-icon{display:none}
+.focus-mode #focus-toggle .enter-focus-icon{display:none}
+.focus-mode #focus-toggle .exit-focus-icon{display:block}
+.focus-mode .topbar,.focus-mode .stats{display:none}
+.focus-mode #viewport{inset:0 0 54px}
+.focus-mode .bottombar{height:54px;justify-content:flex-end;background:none}
+.focus-mode .canvas-tools{opacity:.4;transition:opacity .2s}
+.focus-mode .canvas-tools:hover,.focus-mode .canvas-tools:focus-within{opacity:1}
+@media(hover:none){.focus-mode .canvas-tools{opacity:1}}
+@media(max-width:400px){.bottombar{padding-right:12px;padding-left:12px}.canvas-tools{gap:1px}.tool-divider{margin:0 4px}}

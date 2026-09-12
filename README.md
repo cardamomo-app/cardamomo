@@ -11,6 +11,8 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Drag a card's top handle within or between columns. Drop above/below another card to become its sibling, or beside a parent in the preceding column to attach as its child. The whole branch travels together; Escape cancels a drag.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
 - The moon/sun beside the zoom controls switches between light and dark mode. The preference is saved in this browser.
+- The focus button beside it requests true page fullscreen and hides the app header and statistics. Use the button or Escape to leave. Fullscreen requires a browser that allows the Fullscreen API and is never entered automatically.
+- The canvas leaves enough room after the final column to center it. Opening a card to write centers that card horizontally, including after entering or leaving focus mode.
 - Hover the outgoing connector to highlight it, then click to collapse a card's children. The small square expands the branch again. Nested folds and their saved state are preserved; hidden cards remain in Markdown exports and travel with their parent when dragged.
 - Select text and press Cmd/Ctrl + B for bold or Cmd/Ctrl + I for italic. These shortcuts add Markdown markers; selecting the marked text and repeating the shortcut removes that formatting. Typing undo also undoes formatting.
 - Enter creates a paragraph break; Shift + Enter inserts a Markdown hard line break. The browser handles paragraphs, line breaks, and typing undo directly in a native editable surface.
