@@ -2,6 +2,7 @@ import { importMarkdown } from './markdown-import-v2.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs';
 import { findDropTarget } from './drop-target-v1.mjs';
+import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs';
 import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
@@ -24,9 +25,9 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
  const order=document.createElement('span');order.className='card-order';order.textContent=String(i+1).padStart(2,'0');el.append(handle,del,content,order);el.addEventListener('click',()=>startEditing(c.id));
  el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=orderedCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
  }updateStats();layout();}
-function layout(){const w=360,gapX=125,gapY=86,pad=70,baseX=Math.max(pad,(viewport.clientWidth/zoom-w)/2),baseY=Math.max(90,(viewport.clientHeight/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map();
- function span(c){const kids=siblings(state,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n)=>v+span(n),0)+Math.max(0,kids.length-1)*gapY);spans.set(c.id,h);return h;}siblings(state,null).forEach(span);positions=new Map();
- function place(list,start){let y=start;for(const c of list){const col=depth(state,c);positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(state,c.id),y);y+=spans.get(c.id)+gapY;}}place(siblings(state,null),baseY);
+function layout(){const w=360,gapX=125,pad=70,baseX=Math.max(pad,(viewport.clientWidth/zoom-w)/2),baseY=Math.max(90,(viewport.clientHeight/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map(),gapBetween=createBranchSpacing(state);
+ function span(c){const kids=siblings(state,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n,i)=>v+span(n)+(i?gapBetween(kids[i-1],n):0),0));spans.set(c.id,h);return h;}siblings(state,null).forEach(span);positions=new Map();
+ function place(list,start){let y=start;for(const [i,c] of list.entries()){const col=depth(state,c);positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(state,c.id),y);y+=spans.get(c.id)+gapBetween(c,list[i+1]);}}place(siblings(state,null),baseY);
  let maxX=viewport.clientWidth/zoom,maxY=viewport.clientHeight/zoom;for(const el of cardsEl.children){const p=positions.get(el.dataset.id);el.style.left=p.x+'px';el.style.top=p.y+'px';maxX=Math.max(maxX,p.x+w+pad);maxY=Math.max(maxY,p.y+p.h+120);}board.style.width=maxX+'px';board.style.height=maxY+'px';board.style.zoom=zoom;connections.setAttribute('width',maxX);connections.setAttribute('height',maxY);connections.replaceChildren();additions.replaceChildren();
  function line(d){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);connections.append(p);}
  function plus(x,y,id,dir,label){const b=document.createElement('button');b.className='add-button';b.textContent='+';b.style.left=x+'px';b.style.top=y+'px';b.title=label;b.setAttribute('aria-label',label);b.addEventListener('click',()=>insert(id,dir));additions.append(b);}
