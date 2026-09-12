@@ -8,7 +8,7 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Right: add a first child. Add more children using the vertical sibling controls. No left-side or horizontal-connector plus buttons.
 - Drag a card's top handle to move it within its column. Its children stay attached.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
-- Enter creates a paragraph break; Shift + Enter inserts a Markdown hard line break. Typing uses the font’s normal line height for a consistent caret.
+- Enter creates a paragraph break; Shift + Enter inserts a Markdown hard line break. The browser handles paragraphs, line breaks, and typing undo directly in a native editable surface.
 - Export traverses each root card, its descendants in order, then the next root.
 - Removing a card preserves its children by moving them one column left. Undo restores changes.
 - Alt + Up/Down reorders a focused card. Cmd/Ctrl + Z undoes structural changes outside text inputs.

@@ -1,4 +1,4 @@
-import { attachMarkdownEditing } from './editor.mjs';
+import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs';
 import { newCard, siblings, depth, addCard, moveCard, removeCard, orderedCards, exportMarkdown, validState } from './model.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
@@ -17,7 +17,7 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
  const del=document.createElement('button');del.className='delete-card';del.textContent='×';del.title='Remove card (undo available)';del.setAttribute('aria-label',`Remove card ${i+1}`);del.addEventListener('click',e=>{e.stopPropagation();finishEditing();checkpoint();removeCard(state,c.id);save();render();toast('Card removed. Undo to bring it back.');});
  const content=document.createElement('div');content.className='card-content';content.innerHTML=preview(c.text);content.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer';a.addEventListener('click',e=>e.stopPropagation());});content.querySelectorAll('img').forEach(img=>{img.addEventListener('load',layout);img.addEventListener('error',layout);});
  const order=document.createElement('span');order.className='card-order';order.textContent=String(i+1).padStart(2,'0');el.append(handle,del,content,order);el.addEventListener('click',()=>startEditing(c.id));
- el.addEventListener('keydown',e=>{if(e.target instanceof HTMLTextAreaElement)return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=orderedCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
+ el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=orderedCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
  }updateStats();layout();}
 function layout(){const w=360,gapX=125,gapY=86,pad=70,baseX=Math.max(pad,(viewport.clientWidth/zoom-w)/2),baseY=Math.max(90,(viewport.clientHeight/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map();
  function span(c){const kids=siblings(state,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n)=>v+span(n),0)+Math.max(0,kids.length-1)*gapY);spans.set(c.id,h);return h;}siblings(state,null).forEach(span);positions=new Map();
@@ -28,8 +28,31 @@ function layout(){const w=360,gapX=125,gapY=86,pad=70,baseX=Math.max(pad,(viewpo
  for(const parent of [null,...state.cards.map(c=>c.id)]){const list=siblings(state,parent);if(!list.length)continue;const first=positions.get(list[0].id);plus(first.x+w/2,first.y-38,list[0].id,'before','Add card above');for(let i=0;i<list.length;i++){const c=list[i],p=positions.get(c.id),next=list[i+1]&&positions.get(list[i+1].id);if(next){line(`M${p.x+w/2},${p.y+p.h} V${next.y}`);plus(p.x+w/2,(p.y+p.h+next.y)/2,c.id,'after','Insert card between');}else plus(p.x+w/2,p.y+p.h+38,c.id,'after','Add card below');}}
  for(const c of state.cards){const p=positions.get(c.id),kids=siblings(state,c.id),right=p.x+w;if(kids.length){for(const k of kids){const q=positions.get(k.id),mid=right+gapX/2;line(`M${right},${p.y+p.h/2} H${mid} V${q.y+q.h/2} H${q.x}`);}}else plus(right+38,p.y+p.h/2,c.id,'right','Add child to the right');}}
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);reveal(c.id);}
-function startEditing(id){if(editing===id)return;finishEditing();const c=state.cards.find(c=>c.id===id);if(!c)return;checkpoint();editing=id;const el=cardsEl.querySelector(`[data-id="${id}"]`);el.classList.add('editing');const editor=document.createElement('textarea');editor.className='card-editor';editor.value=c.text;editor.placeholder='Begin anywhere.';editor.setAttribute('aria-label','Write in Markdown');editor.spellcheck=true;el.querySelector('.card-content').replaceWith(editor);editor.addEventListener('input',()=>{c.text=editor.value;resizeEditor(editor);scheduleSave();});attachMarkdownEditing(editor);editor.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finishEditing();cardsEl.querySelector(`[data-id="${id}"]`)?.focus();}});resizeEditor(editor);editor.focus();editor.setSelectionRange(editor.value.length,editor.value.length);updateStats();}
-function resizeEditor(e){e.style.height='auto';e.style.height=Math.max(216,e.scrollHeight)+'px';layout();}
+function startEditing(id) {
+  if(editing===id)return;
+  finishEditing();
+  const c=state.cards.find(c=>c.id===id);
+  if(!c)return;
+  checkpoint(); editing=id;
+  const el=cardsEl.querySelector(`[data-id="${id}"]`);
+  el.classList.add('editing');
+  const editor=createMarkdownEditor(c.text);
+  el.querySelector('.card-content').replaceWith(editor);
+  let pendingLayout=0;
+  editor.addEventListener('input',()=>{
+    c.text=readMarkdownEditor(editor);
+    scheduleSave();
+    // Let the native editing operation finish before measuring card positions.
+    if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
+  });
+  editor.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!e.isComposing){
+      e.preventDefault();e.stopPropagation();finishEditing();
+      cardsEl.querySelector(`[data-id="${id}"]`)?.focus();
+    }
+  });
+  layout();focusMarkdownEditor(editor);updateStats();
+}
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
 function reveal(id){cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'nearest'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
@@ -39,7 +62,7 @@ function startDrag(event,id){if(event.button!==0)return;event.preventDefault();e
  function move(e){pointerY=e.clientY;if(!active&&Math.abs(e.clientY-startY)<5)return;if(!active){active=true;source.classList.add('dragging');ghost=source.cloneNode(true);ghost.classList.add('drag-ghost');ghost.style.left=origin.left+'px';ghost.style.width=origin.width+'px';ghost.style.minHeight=origin.height+'px';document.body.append(ghost);autoScroll();}ghost.style.top=(origin.top+e.clientY-startY)+'px';document.querySelectorAll('.drop-before,.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));target=null;let nearest=Infinity;const card=state.cards.find(c=>c.id===id);for(const el of cardsEl.children){if(el.dataset.id===id)continue;const c=state.cards.find(c=>c.id===el.dataset.id);if(depth(state,c)!==depth(state,card))continue;const r=el.getBoundingClientRect(),dist=Math.abs(e.clientY-(r.top+r.height/2));if(dist<nearest){target=el;nearest=dist;before=e.clientY<r.top+r.height/2;}}if(target)target.classList.add(before?'drop-before':'drop-after');}
  function end(e){document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end);cancelAnimationFrame(scrollFrame);ghost?.remove();source.classList.remove('dragging');if(active&&target&&e.type!=='pointercancel'){checkpoint();moveCard(state,id,target.dataset.id,before);save();render();reveal(id);}else document.querySelectorAll('.drop-before,.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));}document.addEventListener('pointermove',move);document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);}
 document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button'))finishEditing();});
-document.addEventListener('keydown',e=>{const input=e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();toast(storageFailed?'Please export to save your writing.':'Saved in this browser.');}});
+document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();toast(storageFailed?'Please export to save your writing.':'Saved in this browser.');}});
 $('#undo').addEventListener('click',()=>undo());$('#export').addEventListener('click',download);$('#document-title').addEventListener('focus',checkpoint);$('#document-title').addEventListener('input',e=>{state.title=e.target.value;scheduleSave();});$('#document-title').addEventListener('blur',()=>{if(!state.title.trim()){state.title='Untitled';$('#document-title').value=state.title;}save();});
 function setZoom(v){finishEditing();zoom=Math.max(.5,Math.min(1.5,v));$('#reset-view').textContent=Math.round(zoom*100)+'%';layout();}$('#zoom-in').addEventListener('click',()=>setZoom(zoom+.1));$('#zoom-out').addEventListener('click',()=>setZoom(zoom-.1));$('#reset-view').addEventListener('click',()=>{setZoom(1);viewport.scrollTo({left:0,top:0,behavior:'smooth'});});
 $('#help').addEventListener('click',()=>$('#guide').showModal());$('.close-guide').addEventListener('click',()=>$('#guide').close());$('#guide').addEventListener('click',e=>{if(e.target===$('#guide')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
