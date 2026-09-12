@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { importMarkdown } from '../dist/markdown-import-v1.mjs';
-import { depth, exportMarkdown, validState, addCard, moveCard, removeCard } from '../dist/model-v2.mjs';
+import { importMarkdown } from '../dist/markdown-import-v2.mjs';
+import { depth, exportMarkdown, validState, addCard, moveCard, removeCard } from '../dist/model-v3.mjs';
 const { marked } = createRequire(import.meta.url)('../dist/assets/marked.umd.js');
 const parse = text => importMarkdown(text, 'My draft.md', input => marked.lexer(input, { gfm: true }));
 

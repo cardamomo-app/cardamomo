@@ -52,3 +52,6 @@ strong,b{font-weight:500}em,i{font-style:italic}code,pre{font-family:inherit}.ca
 [data-theme="dark"] .guide-note{border-color:#50564b}
 [data-theme="dark"] #toast{background:#bbc7ab;color:#252923}
 [data-theme="dark"] ::selection{background:#68745b;color:#f4f5f1}
+.drop-child{outline:2px solid var(--accent);outline-offset:5px}
+.drag-label{position:absolute;top:-34px;left:0;white-space:nowrap;padding:6px 10px;border-radius:4px;background:var(--ink);color:var(--paper);font-size:12px;line-height:1.4;box-shadow:0 3px 12px #0002}
+.drag-ghost.invalid-drop{opacity:.45}

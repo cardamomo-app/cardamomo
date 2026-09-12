@@ -8,7 +8,26 @@ export function depth(s,c){
  return column;
 }
 export function addCard(s,id,direction){const target=s.cards.find(c=>c.id===id);if(!target)throw Error('Card not found');const card=newCard(direction==='right'?id:target.parent,depth(s,target)+(direction==='right'?1:0));if(direction==='left'){target.parent=card.id;s.cards.splice(s.cards.indexOf(target),0,card);}else if(direction==='right')s.cards.push(card);else if(['before','after'].includes(direction))s.cards.splice(s.cards.indexOf(target)+(direction==='after'?1:0),0,card);else throw Error('Unknown direction');return card;}
-export function moveCard(s,id,targetId,before){const c=s.cards.find(c=>c.id===id),t=s.cards.find(c=>c.id===targetId);if(!c||!t||c===t||depth(s,c)!==depth(s,t))return false;s.cards.splice(s.cards.indexOf(c),1);c.parent=t.parent;s.cards.splice(s.cards.indexOf(t)+(before?0:1),0,c);return true;}
+export function moveBranch(s,id,parent,column,anchorId=null,before=false){
+ const card=s.cards.find(c=>c.id===id),p=s.cards.find(c=>c.id===parent),anchor=s.cards.find(c=>c.id===anchorId);
+ if(!card||!Number.isInteger(column)||column<0||(parent!==null&&(!p||depth(s,p)>=column)))return false;
+ const branch=[card,...orderedCards(s,id)],ids=new Set(branch.map(c=>c.id));
+ if(ids.has(parent)||ids.has(anchorId))return false;
+ if(anchorId!==null&&(!anchor||anchor.parent!==parent||depth(s,anchor)!==column))return false;
+ const delta=column-depth(s,card),columns=branch.map(c=>[c,depth(s,c)+delta]);
+ s.cards.splice(s.cards.indexOf(card),1);
+ card.parent=parent;
+ columns.forEach(([c,col])=>{c.column=col;});
+ if(anchor)s.cards.splice(s.cards.indexOf(anchor)+(before?0:1),0,card);
+ else s.cards.push(card);
+ return true;
+}
+export function moveCard(s,id,targetId,before){const target=s.cards.find(c=>c.id===targetId);return !!target&&moveBranch(s,id,target.parent,depth(s,target),targetId,before);}
+export function splitCard(s,id,before,after){
+ const card=s.cards.find(c=>c.id===id);
+ if(!card||typeof before!=='string'||typeof after!=='string')return null;
+ const next=addCard(s,id,'after');card.text=before;next.text=after;return next;
+}
 export function removeCard(s,id){const c=s.cards.find(c=>c.id===id);if(!c)return;const ordered=orderedCards(s),kids=siblings(s,id);const lifted=orderedCards(s,id).map(n=>[n,Math.max(0,depth(s,n)-1)]);lifted.forEach(([n,column])=>{n.column=column;});kids.forEach(k=>k.parent=c.parent);s.cards=ordered.filter(n=>n.id!==id);if(!s.cards.length)s.cards.push(newCard());}
 export function orderedCards(s,parent=null){return siblings(s,parent).flatMap(c=>[c,...orderedCards(s,c.id)]);}
 export function exportMarkdown(s){const t=orderedCards(s).map(c=>c.text.trim()).filter(Boolean).join('\n\n');return t?t+'\n':'';}
