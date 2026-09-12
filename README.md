@@ -23,26 +23,5 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 
 Drafts are device- and browser-local. There is no account or cloud synchronization. Export Markdown for a portable copy.
 
-## Hosting
-
-The existing site remains at https://cardamomo-writer.nunthewiser.chatgpt.site/.
-GitHub Pages is an additional deployment at https://cardamomo-app.github.io/cardamomo/.
-
-In the GitHub repository, choose **Settings → Pages → Source → GitHub Actions** once.
-The included workflow then publishes `dist/` whenever `main` is updated. It can also
-be run manually from the Actions tab. No build step or custom domain is needed.
-The `.openai/hosting.json` file belongs to the existing Sites deployment and should
-be preserved; GitHub Pages publishes only `dist/` and does not alter that deployment.
-
-Assets use relative paths, so the same files work at a domain root or under a
-repository path. Drafts are stored separately for each website origin: export a
-Markdown file from one address and open it at the other to move your writing.
-
-Browser and install icons use the existing Cardamomo mark: SVG and 16/32/48px
-favicons, a 180px Apple touch icon, 192/512px app icons, and full-bleed 512/1024px
-maskable icons. The manifest opens installed copies in a standalone window at
-the same website address. Icon sources are in `dist/icons/`; regenerate the PNGs
-and ICO with `node scripts/generate-icons.cjs` when `sharp` is installed locally.
-Generated files are committed, so publishing requires no image build step.
 
 Bundled assets: DM Mono regular and medium, each with normal and italic faces (SIL Open Font License), marked 15.0.12 (MIT), DOMPurify 3.2.6 (Apache-2.0 OR MPL-2.0).
