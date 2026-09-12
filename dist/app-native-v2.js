@@ -1,5 +1,6 @@
+import { importMarkdown } from './markdown-import-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs';
-import { newCard, siblings, depth, addCard, moveCard, removeCard, orderedCards, exportMarkdown, validState } from './model.mjs';
+import { newCard, siblings, depth, addCard, moveCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v2.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
@@ -21,11 +22,11 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
  }updateStats();layout();}
 function layout(){const w=360,gapX=125,gapY=86,pad=70,baseX=Math.max(pad,(viewport.clientWidth/zoom-w)/2),baseY=Math.max(90,(viewport.clientHeight/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map();
  function span(c){const kids=siblings(state,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n)=>v+span(n),0)+Math.max(0,kids.length-1)*gapY);spans.set(c.id,h);return h;}siblings(state,null).forEach(span);positions=new Map();
- function place(list,col,start){let y=start;for(const c of list){positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(state,c.id),col+1,y);y+=spans.get(c.id)+gapY;}}place(siblings(state,null),0,baseY);
+ function place(list,start){let y=start;for(const c of list){const col=depth(state,c);positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(state,c.id),y);y+=spans.get(c.id)+gapY;}}place(siblings(state,null),baseY);
  let maxX=viewport.clientWidth/zoom,maxY=viewport.clientHeight/zoom;for(const el of cardsEl.children){const p=positions.get(el.dataset.id);el.style.left=p.x+'px';el.style.top=p.y+'px';maxX=Math.max(maxX,p.x+w+pad);maxY=Math.max(maxY,p.y+p.h+120);}board.style.width=maxX+'px';board.style.height=maxY+'px';board.style.zoom=zoom;connections.setAttribute('width',maxX);connections.setAttribute('height',maxY);connections.replaceChildren();additions.replaceChildren();
  function line(d){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);connections.append(p);}
  function plus(x,y,id,dir,label){const b=document.createElement('button');b.className='add-button';b.textContent='+';b.style.left=x+'px';b.style.top=y+'px';b.title=label;b.setAttribute('aria-label',label);b.addEventListener('click',()=>insert(id,dir));additions.append(b);}
- for(const parent of [null,...state.cards.map(c=>c.id)]){const list=siblings(state,parent);if(!list.length)continue;const first=positions.get(list[0].id);plus(first.x+w/2,first.y-38,list[0].id,'before','Add card above');for(let i=0;i<list.length;i++){const c=list[i],p=positions.get(c.id),next=list[i+1]&&positions.get(list[i+1].id);if(next){line(`M${p.x+w/2},${p.y+p.h} V${next.y}`);plus(p.x+w/2,(p.y+p.h+next.y)/2,c.id,'after','Insert card between');}else plus(p.x+w/2,p.y+p.h+38,c.id,'after','Add card below');}}
+ for(const parent of [null,...state.cards.map(c=>c.id)]){const groups=new Map();for(const card of siblings(state,parent)){const column=depth(state,card);if(!groups.has(column))groups.set(column,[]);groups.get(column).push(card);}for(const list of groups.values()){if(!list.length)continue;const first=positions.get(list[0].id);plus(first.x+w/2,first.y-38,list[0].id,'before','Add card above');for(let i=0;i<list.length;i++){const c=list[i],p=positions.get(c.id),next=list[i+1]&&positions.get(list[i+1].id);if(next){line(`M${p.x+w/2},${p.y+p.h} V${next.y}`);plus(p.x+w/2,(p.y+p.h+next.y)/2,c.id,'after','Insert card between');}else plus(p.x+w/2,p.y+p.h+38,c.id,'after','Add card below');}}}
  for(const c of state.cards){const p=positions.get(c.id),kids=siblings(state,c.id),right=p.x+w;if(kids.length){for(const k of kids){const q=positions.get(k.id),mid=right+gapX/2;line(`M${right},${p.y+p.h/2} H${mid} V${q.y+q.h/2} H${q.x}`);}}else plus(right+38,p.y+p.h/2,c.id,'right','Add child to the right');}}
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);reveal(c.id);}
 function startEditing(id) {
@@ -56,6 +57,24 @@ function startEditing(id) {
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
 function reveal(id){cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'nearest'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
+function replaceDraft(next,message){
+  finishEditing();checkpoint();state=next;
+  zoom=1;$('#reset-view').textContent='100%';save();render();
+  viewport.scrollTo({left:0,top:0});toast(message);
+}
+$('#new-document').addEventListener('click',()=>replaceDraft({title:'Untitled',cards:[newCard()]},'New document. Undo restores your previous draft.'));
+$('#open-document').addEventListener('click',()=>{finishEditing();$('#markdown-file').click();});
+$('#markdown-file').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];event.target.value='';if(!file)return;
+  $('#open-document').disabled=true;$('#new-document').disabled=true;
+  try{
+    const source=await file.text();
+    const next=importMarkdown(source,file.name,text=>marked.lexer(text,{gfm:true}));
+    if(!validState(next))throw new Error('The Markdown structure could not be opened.');
+    replaceDraft(next,`Opened ${file.name}. Undo restores your previous draft.`);
+  }catch(error){toast(error.message||'Could not open this file. Your draft is unchanged.');}
+  finally{$('#open-document').disabled=false;$('#new-document').disabled=false;}
+});
 function download(){finishEditing();const markdown=exportMarkdown(state);if(!markdown){toast('Write a little something first.');return;}const url=URL.createObjectURL(new Blob([markdown],{type:'text/markdown;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=(state.title.trim()||'Untitled').replace(/[\\/:*?"<>|]/g,'-')+'.md';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Your words, all together.');}
 function startDrag(event,id){if(event.button!==0)return;event.preventDefault();event.stopPropagation();finishEditing();const source=cardsEl.querySelector(`[data-id="${id}"]`),origin=source.getBoundingClientRect(),startY=event.clientY;let active=false,ghost=null,target=null,before=false,pointerY=startY,scrollFrame;
  function autoScroll(){if(!active)return;const r=viewport.getBoundingClientRect();if(pointerY<r.top+60)viewport.scrollTop-=12;else if(pointerY>r.bottom-60)viewport.scrollTop+=12;scrollFrame=requestAnimationFrame(autoScroll);}

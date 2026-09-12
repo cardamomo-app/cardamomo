@@ -4,6 +4,8 @@ A quiet Markdown writing app built with browser-native JavaScript and CSS.
 
 Serve `dist/` with any static web server. The app opens on a single blank card, saves the draft automatically in this browser, and downloads the document as Markdown.
 
+- The blank-page button starts a new document; the folder opens a local Markdown file. Both can be undone.
+- Imported heading levels map to columns in order (highest present first). Each heading starts a card, keeping its following body text. Skipped parent headings keep their column alignment; heading-like text inside code or quotations stays in its card.
 - Above/below: add siblings; line buttons insert between siblings.
 - Right: add a first child. Add more children using the vertical sibling controls. No left-side or horizontal-connector plus buttons.
 - Drag a card's top handle to move it within its column. Its children stay attached.
