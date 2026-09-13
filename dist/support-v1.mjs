@@ -2,6 +2,15 @@ const button = document.querySelector('#support');
 const dialog = document.querySelector('#support-dialog');
 const panel = document.querySelector('#support-panel');
 
+function positionPanel() {
+  const anchor = button.getBoundingClientRect();
+  const gap = 10, edge = 12;
+  const top = Math.min(anchor.bottom + gap, Math.max(edge, window.innerHeight - 280));
+  dialog.style.top = `${top}px`;
+  dialog.style.left = `${Math.max(edge, Math.min(anchor.right - dialog.offsetWidth, window.innerWidth - dialog.offsetWidth - edge))}px`;
+  dialog.style.height = `${Math.max(0, Math.min(560, window.innerHeight - top - edge))}px`;
+}
+
 button.addEventListener('click', () => {
   // Contact Ko-fi only after the user chooses to open the tip panel.
   if (!panel.firstElementChild) {
@@ -13,7 +22,10 @@ button.addEventListener('click', () => {
     panel.append(frame);
   }
   dialog.showModal();
+  positionPanel();
 });
+
+window.addEventListener('resize', () => { if (dialog.open) positionPanel(); });
 
 document.querySelector('#close-support').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => {
