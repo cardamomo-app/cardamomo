@@ -57,7 +57,7 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
 const creationKeys=new Set();
 cardsEl.addEventListener('keydown',event=>{
-  if(!event.metaKey||!event.ctrlKey||event.altKey||event.shiftKey||event.isComposing)return;
+  if(event.metaKey||!event.ctrlKey||event.altKey||!event.shiftKey||event.isComposing)return;
   const direction={ArrowRight:'right',ArrowUp:'before',ArrowDown:'after'}[event.key];
   const card=event.target.closest('.card');
   if(!direction||!card)return;
@@ -75,7 +75,7 @@ cardsEl.addEventListener('keydown',event=>{
   },0);
 },true);
 function consumeCreationKey(event){
-  if(event.type==='keyup'&&['Meta','Control'].includes(event.key)){
+  if(event.type==='keyup'&&['Shift','Control'].includes(event.key)){
     creationKeys.clear();return;
   }
   if(!creationKeys.has(event.key))return;
