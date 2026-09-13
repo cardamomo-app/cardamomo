@@ -27,7 +27,7 @@ No account required. Your current draft saves automatically in your browser.
 2. Use **+ below** for another card in the same column, or **+ right** to add a child in the next column.
 3. Click outside a card to see its rendered Markdown. Click it again to continue editing.
 4. Give the document a title at the top. Your draft saves as you work.
-5. Choose **Export .md** whenever you want a portable copy of your writing.
+5. Choose the **Export** icon whenever you want a portable copy of your writing.
 
 ## The canvas
 
@@ -55,7 +55,8 @@ Opening a card for writing centers its column in the viewport. Extra space beyon
 | Blank page | Starts a new document with one empty card. Undo can restore the previous draft. |
 | Open folder | Opens a local Markdown file and replaces the current draft. Undo can restore the previous draft. |
 | Undo ↶ | Restores a previous draft state, including structural changes. |
-| Export .md | Downloads your writing as a Markdown file. |
+| Redo ↷ | Reapplies the last undone draft change. |
+| Export (download icon) | Downloads your writing as a Markdown file. |
 
 ### Cards and connections
 
