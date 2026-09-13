@@ -71,7 +71,7 @@
 .focus-mode .canvas-tools:hover,.focus-mode .canvas-tools:focus-within{opacity:1}
 @media(hover:none){.focus-mode .canvas-tools{opacity:1}}
 @media(max-width:400px){.bottombar{padding-right:12px;padding-left:12px}.canvas-tools{gap:1px}.tool-divider{margin:0 4px}}
-#support-dialog{position:fixed;margin:0;padding:0;width:min(360px,calc(100vw - 24px));max-width:360px;height:560px;max-height:calc(100dvh - 24px);overflow:hidden;box-shadow:0 12px 42px #24282024}
+#support-dialog{position:fixed;margin:0;padding:0;width:min(360px,calc(100vw - 24px));max-width:360px;height:794px;max-height:calc(100dvh - 24px);overflow:hidden;box-shadow:0 12px 42px #24282024}
 #support-dialog::backdrop{background:#20251a14;backdrop-filter:none}
 #support-dialog[open]{display:flex;flex-direction:column}
 .support-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;flex-shrink:0}

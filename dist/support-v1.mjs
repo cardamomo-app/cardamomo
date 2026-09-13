@@ -5,10 +5,14 @@ const panel = document.querySelector('#support-panel');
 function positionPanel() {
   const anchor = button.getBoundingClientRect();
   const gap = 10, edge = 12;
-  const top = Math.min(anchor.bottom + gap, Math.max(edge, window.innerHeight - 280));
+  // Reserve Ko-fi's recommended 712px for the form, plus our header/footer.
+  const chromeHeight = dialog.offsetHeight - panel.clientHeight;
+  const height = Math.min(712 + chromeHeight, Math.max(0, window.innerHeight - edge * 2));
+  // Move upward when necessary so space above the toolbar isn't wasted.
+  const top = Math.min(anchor.bottom + gap, Math.max(edge, window.innerHeight - height - edge));
   dialog.style.top = `${top}px`;
   dialog.style.left = `${Math.max(edge, Math.min(anchor.right - dialog.offsetWidth, window.innerWidth - dialog.offsetWidth - edge))}px`;
-  dialog.style.height = `${Math.max(0, Math.min(560, window.innerHeight - top - edge))}px`;
+  dialog.style.height = `${height}px`;
 }
 
 button.addEventListener('click', () => {
