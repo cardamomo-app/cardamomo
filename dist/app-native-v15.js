@@ -5,6 +5,7 @@ import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
 import { installFocusMode } from './focus-mode-v1.mjs';
+import { navigationTarget } from './card-navigation-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
 import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
@@ -55,36 +56,42 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
  }
 }
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
-const creationKeys=new Set();
+const cardShortcutKeys=new Set();
 cardsEl.addEventListener('keydown',event=>{
-  if(event.metaKey||!event.ctrlKey||event.altKey||!event.shiftKey||event.isComposing)return;
+  if(event.metaKey||!event.ctrlKey||event.isComposing)return;
+  const navigate=event.altKey&&!event.shiftKey;
+  const create=event.shiftKey&&!event.altKey;
+  if(!navigate&&!create)return;
   const direction={ArrowRight:'right',ArrowUp:'before',ArrowDown:'after'}[event.key];
   const card=event.target.closest('.card');
-  if(!direction||!card)return;
+  if(!card||(!direction&&!(navigate&&event.key==='ArrowLeft')))return;
   event.preventDefault();event.stopImmediatePropagation();
-  creationKeys.add(event.key);
-  // Holding a shortcut must not create a chain of empty cards.
+  cardShortcutKeys.add(event.key);
+  // One deliberate key press creates or opens one card.
   if(event.repeat)return;
   const id=card.dataset.id;
+  const target=navigate?navigationTarget(state,id,event.key):null;
+  if(navigate&&!target)return;
   // Match the right-hand plus, including branches whose children are folded.
-  if(direction==='right'&&siblings(state,id).length)return;
+  if(create&&direction==='right'&&siblings(state,id).length)return;
   // Keep the focused editor attached until native key handling has finished.
   setTimeout(()=>{
     if(!card.isConnected||!card.contains(document.activeElement))return;
-    insert(id,direction);
+    if(navigate)startEditing(target.id);
+    else insert(id,direction);
   },0);
 },true);
-function consumeCreationKey(event){
-  if(event.type==='keyup'&&['Shift','Control'].includes(event.key)){
-    creationKeys.clear();return;
+function consumeCardShortcutKey(event){
+  if(event.type==='keyup'&&['Shift','Control','Alt'].includes(event.key)){
+    cardShortcutKeys.clear();return;
   }
-  if(!creationKeys.has(event.key))return;
+  if(!cardShortcutKeys.has(event.key))return;
   event.preventDefault();event.stopImmediatePropagation();
-  if(event.type==='keyup')creationKeys.delete(event.key);
+  if(event.type==='keyup')cardShortcutKeys.delete(event.key);
 }
-document.addEventListener('keypress',consumeCreationKey,true);
-document.addEventListener('keyup',consumeCreationKey,true);
-window.addEventListener('blur',()=>creationKeys.clear());
+document.addEventListener('keypress',consumeCardShortcutKey,true);
+document.addEventListener('keyup',consumeCardShortcutKey,true);
+window.addEventListener('blur',()=>cardShortcutKeys.clear());
 function startEditing(id) {
   if(editing===id)return;
   finishEditing();

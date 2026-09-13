@@ -11,6 +11,7 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Ctrl + Shift + Right adds a first child when the right-hand plus is available. Ctrl + Shift + Up/Down adds a sibling above/below. Use these while editing or focusing a card; the new card opens for writing. Cmd + Arrow keeps normal text navigation, and Cmd + Shift + Arrow keeps normal text selection.
 - Drag a card's top handle within or between columns. Drop above/below another card to become its sibling, or beside a parent in the preceding column to attach as its child. The whole branch travels together; Escape cancels a drag.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
+- Option/Alt + Control + Arrow opens another card for writing: Up/Down moves to the previous/next visible card in the same column, Left opens the parent, and Right opens the first child (expanding a folded branch). At an edge it stays on the current card. Writing is saved and the destination scrolls smoothly into view.
 - The moon/sun beside the zoom controls switches between light and dark mode. The preference is saved in this browser.
 - The focus button beside it requests true page fullscreen and hides the app header and statistics. Use the button or Escape to leave. Fullscreen requires a browser that allows the Fullscreen API and is never entered automatically.
 - The canvas leaves enough room after the final column to center it. Opening a card to write centers that card horizontally, including after entering or leaving focus mode.
