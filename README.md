@@ -52,6 +52,7 @@ Opening a card for writing centers its column in the viewport. Extra space beyon
 | --- | --- |
 | Document title | Names the draft and its exported file. |
 | Save status | Shows whether the draft has saved in this browser. |
+| Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
 | Blank page | Starts a new document with one empty card. Undo can restore the previous draft. |
 | Open folder | Opens a local Markdown file and replaces the current draft. Undo can restore the previous draft. |
 | Undo ↶ | Restores a previous draft state, including structural changes. |
@@ -187,7 +188,7 @@ Cardamomo keeps one current draft in browser-local storage. There is no account 
 
 New and Open replace the current draft. Undo can restore it during the current session, but undo history does not survive a reload. Avoid editing separate drafts in multiple tabs at the same address: they share the same storage.
 
-The app bundles its fonts and rendering libraries. Images referenced in your Markdown may load from their original URLs.
+The app bundles its fonts and rendering libraries. Images referenced in your Markdown may load from their original URLs. Opening the support panel loads an embedded payment form from Ko-fi.
 
 ### Install as an app
 
