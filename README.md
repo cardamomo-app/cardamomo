@@ -8,6 +8,7 @@ Serve `dist/` with any static web server. The app opens on a single blank card, 
 - Imported heading levels map to columns in order (highest present first). Each heading starts a card, keeping its following body text. Skipped parent headings keep their column alignment; heading-like text inside code or quotations stays in its card.
 - Above/below: add siblings; line buttons insert between siblings.
 - Right: add a first child. Add more children using the vertical sibling controls. No left-side or horizontal-connector plus buttons.
+- Cmd + Right adds a first child when the right-hand plus is available. Cmd + Up/Down adds a sibling above/below. Use these while editing or focusing a card; the new card opens for writing. Shift-modified arrows keep their normal text-selection behavior.
 - Drag a card's top handle within or between columns. Drop above/below another card to become its sibling, or beside a parent in the preceding column to attach as its child. The whole branch travels together; Escape cancels a drag.
 - Click a card to edit Markdown; click outside or press Escape for its rendered preview.
 - The moon/sun beside the zoom controls switches between light and dark mode. The preference is saved in this browser.
