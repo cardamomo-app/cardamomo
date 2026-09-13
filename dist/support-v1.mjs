@@ -1,13 +1,14 @@
 const button = document.querySelector('#support');
 const dialog = document.querySelector('#support-dialog');
 const panel = document.querySelector('#support-panel');
+const formHeight = 590;
 
 function positionPanel() {
   const anchor = button.getBoundingClientRect();
   const gap = 10, edge = 12;
-  // Reserve Ko-fi's recommended 712px for the form, plus our header/footer.
+  // Fit the complete tip form and Ko-fi credit without the embed's extra blank space.
   const chromeHeight = dialog.offsetHeight - panel.clientHeight;
-  const height = Math.min(712 + chromeHeight, Math.max(0, window.innerHeight - edge * 2));
+  const height = Math.min(formHeight + chromeHeight, Math.max(0, window.innerHeight - edge * 2));
   // Move upward when necessary so space above the toolbar isn't wasted.
   const top = Math.min(anchor.bottom + gap, Math.max(edge, window.innerHeight - height - edge));
   dialog.style.top = `${top}px`;
@@ -22,7 +23,7 @@ button.addEventListener('click', () => {
     frame.id = 'kofiframe';
     frame.title = 'Support Cardamomo on Ko-fi';
     frame.src = 'https://ko-fi.com/cardamomo/?hidefeed=true&widget=true&embed=true&preview=true';
-    frame.height = '712';
+    frame.height = String(formHeight);
     panel.append(frame);
   }
   dialog.showModal();
