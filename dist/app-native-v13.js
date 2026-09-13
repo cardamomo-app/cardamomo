@@ -55,19 +55,36 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
  }
 }
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
+const creationKeys=new Set();
 cardsEl.addEventListener('keydown',event=>{
   if(!event.metaKey||!event.ctrlKey||event.altKey||event.shiftKey||event.isComposing)return;
   const direction={ArrowRight:'right',ArrowUp:'before',ArrowDown:'after'}[event.key];
   const card=event.target.closest('.card');
   if(!direction||!card)return;
-  event.preventDefault();event.stopPropagation();
+  event.preventDefault();event.stopImmediatePropagation();
+  creationKeys.add(event.key);
   // Holding a shortcut must not create a chain of empty cards.
   if(event.repeat)return;
   const id=card.dataset.id;
   // Match the right-hand plus, including branches whose children are folded.
   if(direction==='right'&&siblings(state,id).length)return;
-  insert(id,direction);
-});
+  // Keep the focused editor attached until native key handling has finished.
+  setTimeout(()=>{
+    if(!card.isConnected||!card.contains(document.activeElement))return;
+    insert(id,direction);
+  },0);
+},true);
+function consumeCreationKey(event){
+  if(event.type==='keyup'&&['Meta','Control'].includes(event.key)){
+    creationKeys.clear();return;
+  }
+  if(!creationKeys.has(event.key))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  if(event.type==='keyup')creationKeys.delete(event.key);
+}
+document.addEventListener('keypress',consumeCreationKey,true);
+document.addEventListener('keyup',consumeCreationKey,true);
+window.addEventListener('blur',()=>creationKeys.clear());
 function startEditing(id) {
   if(editing===id)return;
   finishEditing();
