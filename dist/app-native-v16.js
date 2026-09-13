@@ -6,12 +6,13 @@ import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
 import { installFocusMode } from './focus-mode-v1.mjs';
 import { navigationTarget } from './card-navigation-v1.mjs';
+import { planMerge, mergeCard } from './card-merge-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
 import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
-let splitUndoCard=null;
+let structuralUndoCard=null;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));if(validState(saved))state=saved;}catch{storageFailed=true;}
 const clone=()=>JSON.stringify(state);
 function checkpoint(){undoStack.push(clone());if(undoStack.length>80)undoStack.shift();redoStack=[];updateStats();}
@@ -56,18 +57,27 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
  }
 }
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
+function merge(id,key){
+  const plan=planMerge(state,id,key);
+  if(plan.error){toast(plan.error);return;}
+  finishEditing();checkpoint();
+  const result=mergeCard(state,id,key);
+  save();render();startEditing(result.id);structuralUndoCard=result.id;
+  toast('Cards merged. Undo restores both cards and their children.');
+}
 const cardShortcutKeys=new Set();
 cardsEl.addEventListener('keydown',event=>{
   if(event.metaKey||!event.ctrlKey||event.isComposing)return;
   const navigate=event.altKey&&!event.shiftKey;
   const create=event.shiftKey&&!event.altKey;
-  if(!navigate&&!create)return;
+  const combine=event.altKey&&event.shiftKey;
+  if(!navigate&&!create&&!combine)return;
   const direction={ArrowRight:'right',ArrowUp:'before',ArrowDown:'after'}[event.key];
   const card=event.target.closest('.card');
-  if(!card||(!direction&&!(navigate&&event.key==='ArrowLeft')))return;
+  if(!card||(!direction&&!((navigate||combine)&&event.key==='ArrowLeft')))return;
   event.preventDefault();event.stopImmediatePropagation();
   cardShortcutKeys.add(event.key);
-  // One deliberate key press creates or opens one card.
+  // One deliberate key press performs one card operation.
   if(event.repeat)return;
   const id=card.dataset.id;
   const target=navigate?navigationTarget(state,id,event.key):null;
@@ -78,6 +88,7 @@ cardsEl.addEventListener('keydown',event=>{
   setTimeout(()=>{
     if(!card.isConnected||!card.contains(document.activeElement))return;
     if(navigate)startEditing(target.id);
+    else if(combine)merge(id,event.key);
     else insert(id,direction);
   },0);
 },true);
@@ -94,6 +105,7 @@ document.addEventListener('keyup',consumeCardShortcutKey,true);
 window.addEventListener('blur',()=>cardShortcutKeys.clear());
 function startEditing(id) {
   if(editing===id)return;
+  structuralUndoCard=null;
   finishEditing();
   const c=state.cards.find(c=>c.id===id);
   if(!c)return;
@@ -105,7 +117,7 @@ function startEditing(id) {
   el.querySelector('.card-content').replaceWith(editor);
   let pendingLayout=0;
   editor.addEventListener('input',()=>{
-    splitUndoCard=null;
+    structuralUndoCard=null;
     c.text=readMarkdownEditor(editor);
     scheduleSave();
     // Let the native editing operation finish before measuring card positions.
@@ -118,10 +130,10 @@ function startEditing(id) {
       finishEditing();checkpoint();
       const next=splitCard(state,id,parts.before,parts.after);
       save();render();startEditing(next.id);focusEditorStart(cardsEl.querySelector('.card-editor'));reveal(next.id);
-      splitUndoCard=next.id;return;
+      structuralUndoCard=next.id;return;
     }
-    if(splitUndoCard===id&&!e.isComposing&&(e.metaKey||e.ctrlKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){
-      e.preventDefault();e.stopPropagation();splitUndoCard=null;undo();return;
+    if(structuralUndoCard===id&&!e.isComposing&&(e.metaKey||e.ctrlKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){
+      e.preventDefault();e.stopPropagation();structuralUndoCard=null;undo();return;
     }
     if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) && ['b','i'].includes(e.key.toLowerCase())) {
       e.preventDefault();e.stopPropagation();
