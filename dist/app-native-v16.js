@@ -275,7 +275,9 @@ $('#reset-view').addEventListener('click',()=>{
     }
   }
   setZoom(1);
-  cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center',inline:'center'});
+  // Correct the scroll position in the same paint as the zoom change.
+  // A smooth scroll here would first expose the resized canvas at its old offset.
+  cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:'instant',block:'center',inline:'center'});
 });
 $('#help').addEventListener('click',()=>$('#guide').showModal());$('.close-guide').addEventListener('click',()=>$('#guide').close());$('#guide').addEventListener('click',e=>{if(e.target===$('#guide')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
 window.addEventListener('resize',()=>{layout();if(editing)reveal(editing);});window.addEventListener('pagehide',save);window.addEventListener('beforeunload',e=>{save();if(storageFailed&&state.cards.some(c=>c.text)){e.preventDefault();e.returnValue='';}});render();save();document.fonts.ready.then(layout);
