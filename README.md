@@ -80,7 +80,7 @@ The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
 | --- | --- |
 | Card and word counts | Counts the entire draft, including folded cards. |
 | − / + | Adjusts canvas zoom from 50% to 150%. |
-| Zoom percentage | Resets zoom to 100% and returns to the start of the canvas. |
+| Zoom percentage | Resets zoom to 100% and centers the last focused card. |
 | Moon / sun | Switches between light and dark mode. Your preference is saved in this browser. |
 | Focus icon | Requests true page fullscreen and hides the header and statistics. Click again or press Escape to leave. Requires browser fullscreen support. |
 | Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
