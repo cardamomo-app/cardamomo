@@ -33,7 +33,7 @@ export function installFocusMode({button,onChange,notify,doc=document}){
   doc.addEventListener('fullscreenchange',sync);
   doc.addEventListener('webkitfullscreenchange',sync);
   doc.addEventListener('keydown',event=>{
-    if(event.key==='Escape'&&!event.isComposing&&active()){
+    if(event.key==='Escape'&&!event.isComposing&&active()&&!doc.querySelector('dialog[open]')){
       event.preventDefault();event.stopPropagation();void toggle();
     }
   },true);

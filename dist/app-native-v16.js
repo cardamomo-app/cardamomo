@@ -1,10 +1,10 @@
-import { importMarkdown } from './markdown-import-v2.mjs';
+import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
-import { installFocusMode } from './focus-mode-v1.mjs';
+import { installFocusMode } from './focus-mode-v1.mjs?v=2';
 import { navigationTarget } from './card-navigation-v1.mjs';
 import { planMerge, mergeCard } from './card-merge-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
@@ -152,25 +152,43 @@ function startEditing(id) {
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
 function reveal(id){if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
-function replaceDraft(next,message){
+function replaceDraft(next,message,view={zoom:1,scrollLeft:0,scrollTop:0}){
   finishEditing();checkpoint();state=next;
-  zoom=1;$('#reset-view').textContent='100%';save();render();
-  viewport.scrollTo({left:0,top:0});toast(message);
+  zoom=view.zoom;$('#reset-view').textContent=Math.round(zoom*100)+'%';save();render();
+  const restoreView=()=>viewport.scrollTo({left:view.scrollLeft,top:view.scrollTop,behavior:'instant'});
+  restoreView();
+  // Fonts may finish loading after a file opens, changing the canvas dimensions.
+  document.fonts.ready.then(()=>{if(state===next){layout();restoreView();}});
+  toast(message);
 }
 $('#new-document').addEventListener('click',()=>replaceDraft({title:'Untitled',cards:[newCard()]},'New document. Undo restores your previous draft.'));
-$('#open-document').addEventListener('click',()=>{finishEditing();$('#markdown-file').click();});
-$('#markdown-file').addEventListener('change',async event=>{
+$('#open-document').addEventListener('click',()=>{finishEditing();$('#document-file').click();});
+$('#document-file').addEventListener('change',async event=>{
   const file=event.target.files?.[0];event.target.value='';if(!file)return;
   $('#open-document').disabled=true;$('#new-document').disabled=true;
   try{
     const source=await file.text();
-    const next=importMarkdown(source,file.name,text=>marked.lexer(text,{gfm:true}));
-    if(!validState(next))throw new Error('The Markdown structure could not be opened.');
-    replaceDraft(next,`Opened ${file.name}. Undo restores your previous draft.`);
+    const {state:next,view}=openDocument(source,file.name,text=>marked.lexer(text,{gfm:true}));
+    if(!validState(next))throw new Error('The document structure could not be opened.');
+    replaceDraft(next,`Opened ${file.name}. Undo restores your previous draft.`,view);
   }catch(error){toast(error.message||'Could not open this file. Your draft is unchanged.');}
   finally{$('#open-document').disabled=false;$('#new-document').disabled=false;}
 });
-function download(){finishEditing();const markdown=exportMarkdown(state);if(!markdown){toast('Write a little something first.');return;}const url=URL.createObjectURL(new Blob([markdown],{type:'text/markdown;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=(state.title.trim()||'Untitled').replace(/[\\/:*?"<>|]/g,'-')+'.md';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Your words, all together.');}
+function downloadFile(contents,extension,type){
+  const url=URL.createObjectURL(new Blob([contents],{type})),a=document.createElement('a');
+  a.href=url;a.download=(state.title.trim()||'Untitled').replace(/[\\/:*?"<>|]/g,'-')+extension;
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function saveDocument(){
+  // Input events already synchronize the card text; keep the current editor and caret.
+  save();
+  try{
+    const contents=serializeDocument(state,{zoom,scrollLeft:Math.max(0,viewport.scrollLeft),scrollTop:Math.max(0,viewport.scrollTop)});
+    downloadFile(contents,'.cardamomo','application/json;charset=utf-8');
+    toast('Cardamomo document downloaded.');
+  }catch(error){toast(error.message||'Could not save the document.');}
+}
+function download(){finishEditing();const markdown=exportMarkdown(state);if(!markdown){toast('Write a little something first.');return;}downloadFile(markdown,'.md','text/markdown;charset=utf-8');toast('Your words, all together.');}
 function startDrag(event,id){
  if(event.button!==0)return;
  event.preventDefault();event.stopPropagation();finishEditing();
@@ -226,9 +244,9 @@ function startDrag(event,id){
  }
  document.addEventListener('pointermove',move);document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);document.addEventListener('keydown',cancel,true);
 }
-document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button,.branch-toggle,#focus-toggle'))finishEditing();});
-document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();toast(storageFailed?'Please export to save your writing.':'Saved in this browser.');}});
-$('#undo').addEventListener('click',()=>undo());$('#redo').addEventListener('click',()=>undo(true));$('#export').addEventListener('click',download);$('#document-title').addEventListener('focus',checkpoint);$('#document-title').addEventListener('input',e=>{state.title=e.target.value;scheduleSave();});$('#document-title').addEventListener('blur',()=>{if(!state.title.trim()){state.title='Untitled';$('#document-title').value=state.title;}save();});
+document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button,.branch-toggle,#focus-toggle,#save-document'))finishEditing();});
+document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!e.repeat)saveDocument();}});
+$('#undo').addEventListener('click',()=>undo());$('#redo').addEventListener('click',()=>undo(true));$('#export').addEventListener('click',download);$('#save-document').addEventListener('pointerdown',e=>e.preventDefault());$('#save-document').addEventListener('click',saveDocument);$('#document-title').addEventListener('focus',checkpoint);$('#document-title').addEventListener('input',e=>{state.title=e.target.value;scheduleSave();});$('#document-title').addEventListener('blur',()=>{if(!state.title.trim()){state.title='Untitled';$('#document-title').value=state.title;}save();});
 function setZoom(v){finishEditing();zoom=Math.max(.5,Math.min(1.5,v));$('#reset-view').textContent=Math.round(zoom*100)+'%';layout();}$('#zoom-in').addEventListener('click',()=>setZoom(zoom+.1));$('#zoom-out').addEventListener('click',()=>setZoom(zoom-.1));$('#reset-view').addEventListener('click',()=>{setZoom(1);viewport.scrollTo({left:0,top:0,behavior:'smooth'});});
 $('#help').addEventListener('click',()=>$('#guide').showModal());$('.close-guide').addEventListener('click',()=>$('#guide').close());$('#guide').addEventListener('click',e=>{if(e.target===$('#guide')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
 window.addEventListener('resize',()=>{layout();if(editing)reveal(editing);});window.addEventListener('pagehide',save);window.addEventListener('beforeunload',e=>{save();if(storageFailed&&state.cards.some(c=>c.text)){e.preventDefault();e.returnValue='';}});render();save();document.fonts.ready.then(layout);

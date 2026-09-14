@@ -9,8 +9,10 @@ function positionPanel() {
   // Fit the complete tip form and Ko-fi credit without the embed's extra blank space.
   const chromeHeight = dialog.offsetHeight - panel.clientHeight;
   const height = Math.min(formHeight + chromeHeight, Math.max(0, window.innerHeight - edge * 2));
-  // Move upward when necessary so space above the toolbar isn't wasted.
-  const top = Math.min(anchor.bottom + gap, Math.max(edge, window.innerHeight - height - edge));
+  // The coffee control lives in the bottom toolbar: open above it when needed.
+  const preferredTop = anchor.bottom + gap + height <= window.innerHeight - edge
+    ? anchor.bottom + gap : anchor.top - height - gap;
+  const top = Math.max(edge, Math.min(preferredTop, window.innerHeight - height - edge));
   dialog.style.top = `${top}px`;
   dialog.style.left = `${Math.max(edge, Math.min(anchor.right - dialog.offsetWidth, window.innerWidth - dialog.offsetWidth - edge))}px`;
   dialog.style.height = `${height}px`;

@@ -82,3 +82,4 @@
 #support-panel iframe{display:block;width:100%;height:100%;padding:4px;border:0;background:#f9f9f9}
 .support-link{align-self:center;font-size:12px;color:var(--muted);padding:8px 12px;flex-shrink:0}
 @media(max-width:420px){.brand span{display:none}}
+@media(max-width:520px){.stats{flex-direction:column;gap:2px;font-size:11px}.stats .separator{display:none}}

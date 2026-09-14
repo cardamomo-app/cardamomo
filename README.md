@@ -27,7 +27,7 @@ No account required. Your current draft saves automatically in your browser.
 2. Use **+ below** for another card in the same column, or **+ right** to add a child in the next column.
 3. Click outside a card to see its rendered Markdown. Click it again to continue editing.
 4. Give the document a title at the top. Your draft saves as you work.
-5. Choose the **Export** icon whenever you want a portable copy of your writing.
+5. Use **Save** to keep a `.cardamomo` document for later editing, or **Export** for a plain Markdown copy.
 
 ## The canvas
 
@@ -48,15 +48,17 @@ Opening a card for writing centers its column in the viewport. Extra space beyon
 
 ### Document toolbar
 
+The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
+
 | Control | What it does |
 | --- | --- |
 | Document title | Names the draft and its exported file. |
 | Save status | Shows whether the draft has saved in this browser. |
-| Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
-| Blank page | Starts a new document with one empty card. Undo can restore the previous draft. |
-| Open folder | Opens a local Markdown file and replaces the current draft. Undo can restore the previous draft. |
 | Undo ↶ | Restores a previous draft state, including structural changes. |
 | Redo ↷ | Reapplies the last undone draft change. |
+| Blank page | Starts a new document with one empty card. Undo can restore the previous draft. |
+| Open folder | Opens a `.cardamomo` document or a Markdown file and replaces the current draft. Undo can restore the previous draft. |
+| Save (disk icon) | Downloads a `.cardamomo` document with its complete card structure, folds, zoom, and canvas position. |
 | Export (download icon) | Downloads your writing as a Markdown file. |
 
 ### Cards and connections
@@ -81,6 +83,7 @@ Opening a card for writing centers its column in the viewport. Extra space beyon
 | Zoom percentage | Resets zoom to 100% and returns to the start of the canvas. |
 | Moon / sun | Switches between light and dark mode. Your preference is saved in this browser. |
 | Focus icon | Requests true page fullscreen and hides the header and statistics. Click again or press Escape to leave. Requires browser fullscreen support. |
+| Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
 | ? | Opens the writing guide. |
 
 ## Writing and organizing
@@ -132,7 +135,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Cmd/Ctrl + B | Toggles bold markers around selected text. |
 | Cmd/Ctrl + I | Toggles italic markers around selected text. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
-| Cmd/Ctrl + S | Saves the draft in this browser. |
+| Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
 | Escape | Leaves focus mode, finishes editing, or cancels an active drag. |
 
 ### Create cards
@@ -168,9 +171,17 @@ These shortcuts save the current writing and open the destination in edit mode. 
 
 ## Files and storage
 
+### Save a Cardamomo document
+
+Use the **Save** disk icon or **Cmd/Ctrl + S** to download a `.cardamomo` file. It preserves the document title, exact Markdown text, empty and headingless cards, card order, parent–child connections, column positions, every collapsed branch, zoom, and canvas scroll position.
+
+Move that file to another device and use **Open** to continue with the same document structure. Cardamomo files are versioned JSON documents; no account or server is needed. Files are validated before replacing the draft, and a damaged or unsupported file leaves the current writing intact.
+
+Save downloads a snapshot rather than automatically overwriting a previously opened file. Browser autosave continues independently. Save a fresh copy before moving devices. Undo history, the text cursor, and device preferences such as theme and fullscreen are not part of the file. The viewport may fit differently on a different screen size.
+
 ### Import Markdown
 
-The folder button accepts `.md`, `.markdown`, `.mdown`, `.mkd`, and `.txt` files.
+The same folder button accepts `.cardamomo` documents and `.md`, `.markdown`, `.mdown`, `.mkd`, and `.txt` files.
 
 Heading levels become columns, starting with the highest level present in the document. Every heading starts a separate card containing that heading and its following body text. Two H3 headings become two cards in the same column. Lower-level headings attach beneath the preceding higher-level heading; skipped parent headings retain their column alignment.
 
@@ -180,11 +191,11 @@ Text before the first heading becomes a separate card. A file without headings o
 
 Export follows the tree in reading order: a root card, its children and their descendants, then the next root card. Folded cards are included. Card contents are joined with blank lines; empty cards do not add text, and column positions do not automatically create headings.
 
-An export is a portable writing document, not an exact canvas backup. Reopening it rebuilds cards from its Markdown headings; it does not restore arbitrary card boundaries, folding, or layout.
+Use Save for an exact card-structure backup. A Markdown export is a portable writing document. Reopening it rebuilds cards from its Markdown headings; it does not restore arbitrary card boundaries, folding, or layout.
 
 ### Browser storage
 
-Cardamomo keeps one current draft in browser-local storage. There is no account or cloud synchronization. Different browsers, devices, and website addresses have separate drafts. Clearing site data can remove the saved draft, so export copies you want to keep.
+Cardamomo keeps one current draft in browser-local storage. There is no account or cloud synchronization. Different browsers, devices, and website addresses have separate drafts. Clearing site data can remove the saved draft, so save `.cardamomo` copies you want to keep.
 
 New and Open replace the current draft. Undo can restore it during the current session, but undo history does not survive a reload. Avoid editing separate drafts in multiple tabs at the same address: they share the same storage.
 
