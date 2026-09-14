@@ -1,5 +1,6 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs';
+import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
@@ -117,6 +118,7 @@ function startEditing(id) {
   el.querySelector('.card-content').replaceWith(editor);
   let pendingLayout=0;
   editor.addEventListener('input',()=>{
+    resetCaseCycle(editor);
     structuralUndoCard=null;
     c.text=readMarkdownEditor(editor);
     scheduleSave();
@@ -124,6 +126,17 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='e'){
+      const selection=editor.ownerDocument.getSelection();
+      if(!selection?.rangeCount||selection.isCollapsed)return;
+      const range=selection.getRangeAt(0);
+      if(!editor.contains(range.startContainer)||!editor.contains(range.endContainer))return;
+      e.preventDefault();e.stopPropagation();
+      if(e.repeat)return;
+      const mode=cycleSelectedText(editor);
+      if(mode!==null){structuralUndoCard=null;c.text=readMarkdownEditor(editor);scheduleSave();layout();toast(caseModes[mode]);}
+      return;
+    }
     if(!e.isComposing&&!e.altKey&&(e.metaKey||e.ctrlKey)&&e.key==='Enter'){
       e.preventDefault();e.stopPropagation();
       const parts=readEditorSplit(editor);if(!parts)return;

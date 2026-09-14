@@ -94,6 +94,8 @@ Write Markdown directly in a card. Headings, **bold**, *italic*, lists, links, b
 
 **Enter** starts a paragraph. **Shift + Enter** inserts a Markdown hard line break. Select text and use the formatting shortcuts to add bold or italic markers; selecting the marked text and repeating the shortcut removes those markers.
 
+Case cycling advances from the selection’s current casing; mixed casing starts at lowercase. Sentence case capitalizes the start of the selection, each sentence, and each paragraph. Word Case capitalizes every word, including short words. The shortcut works on the selected Markdown source and supports typing undo.
+
 ### Moving and folding branches
 
 Drag the handle at the top of a card to reorder it or move it to another column. Drop above or below another card to make it a sibling, or beside a parent in the preceding column to attach it as a child. Its descendants travel with it. Press Escape to cancel a drag.
@@ -134,6 +136,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Shift + Enter | Inserts a Markdown hard line break while editing. |
 | Cmd/Ctrl + B | Toggles bold markers around selected text. |
 | Cmd/Ctrl + I | Toggles italic markers around selected text. |
+| Cmd/Ctrl + E | Cycles selected text through lowercase → ALL CAPS → Sentence case → Word Case, keeping it selected. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
 | Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
 | Escape | Leaves focus mode, finishes editing, or cancels an active drag. |
