@@ -96,6 +96,8 @@ Write Markdown directly in a card. Headings, **bold**, *italic*, lists, links, b
 
 Case cycling advances from the selection’s current casing; mixed casing starts at lowercase. Sentence case capitalizes the start of the selection, each sentence, and each paragraph. Word Case capitalizes every word, including short words. The shortcut works on the selected Markdown source and supports typing undo.
 
+Pasting rich text converts bold, italics, lists, headings, links, quotes, and code into Markdown. Source fonts, colors, and backgrounds are discarded immediately, so pasted content uses Cardamomo’s editor styling. Plain Markdown keeps its original syntax. Paste supports the normal typing undo.
+
 ### Moving and folding branches
 
 Drag the handle at the top of a card to reorder it or move it to another column. Drop above or below another card to make it a sibling, or beside a parent in the preceding column to attach it as a child. Its descendants travel with it. Press Escape to cancel a drag.
@@ -267,6 +269,7 @@ Cardamomo includes the following third-party assets, each under its own license:
 | DM Mono | [SIL Open Font License](dist/assets/OFL.txt) |
 | Marked 15.0.12 | [MIT](dist/assets/MARKED-LICENSE.md) |
 | DOMPurify 3.2.6 | [Apache-2.0 OR MPL-2.0](dist/assets/DOMPURIFY-LICENSE.txt) |
+| Turndown 7.2.4 | [MIT](dist/assets/TURNDOWN-LICENSE.txt) |
 | Inconsolata (retained font asset) | [SIL Open Font License](dist/assets/INCONSOLATA-LICENSE.txt) |
 
 ## License
