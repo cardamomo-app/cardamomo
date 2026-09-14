@@ -1,6 +1,6 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
-import { formatMarkdownSelection } from './formatting-v1.mjs';
-import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs';
+import { formatMarkdownSelection } from './formatting-v1.mjs?v=2';
+import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
@@ -150,6 +150,7 @@ function startEditing(id) {
     }
     if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) && ['b','i'].includes(e.key.toLowerCase())) {
       e.preventDefault();e.stopPropagation();
+      if(e.repeat)return;
       if(formatMarkdownSelection(editor,e.key.toLowerCase()==='b'?'bold':'italic')) {
         c.text=readMarkdownEditor(editor);scheduleSave();layout();
       }

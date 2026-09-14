@@ -1,4 +1,5 @@
-import { createMarkdownEditor, readMarkdownEditor } from './native-editor-v1.mjs';
+import { readMarkdownEditor } from './native-editor-v1.mjs';
+import { replaceSelectedMarkdown } from './selection-edit-v1.mjs';
 
 export const caseModes = ['lowercase', 'ALL CAPS', 'Sentence case', 'Word Case'];
 
@@ -37,26 +38,7 @@ export function cycleSelectedText(editor) {
   const last = cycles.get(editor);
   const next = nextTextCase(source, last && last.text === source && sameRange(last.range, range) ? last.mode : undefined);
   if (!next) return null;
-  if (next.text !== source) {
-    const before = doc.createRange();
-    before.selectNodeContents(editor);
-    before.setEnd(range.startContainer, range.startOffset);
-    const startOffset = before.cloneContents().textContent.length;
-    // One native edit keeps case changes in the browser's typing undo history.
-    const success = next.text.includes('\n')
-      ? doc.execCommand('insertHTML', false, createMarkdownEditor(next.text, doc).innerHTML)
-      : doc.execCommand('insertText', false, next.text);
-    if (!success || !selection.rangeCount) return null;
-    const result = selection.getRangeAt(0).cloneRange();
-    const walker = doc.createTreeWalker(editor, 4); // Text nodes; offsets remain valid when Unicode changes length.
-    let remaining = startOffset, node;
-    while ((node = walker.nextNode())) {
-      if (remaining < node.length) { result.setStart(node, remaining); break; }
-      remaining -= node.length;
-    }
-    selection.removeAllRanges();
-    selection.addRange(result);
-  }
+  if (next.text !== source && !replaceSelectedMarkdown(editor, range, next.text)) return null;
   // Remember even identical-looking steps, e.g. Sentence case and Word Case for one word.
   cycles.set(editor, { ...next, range: selection.getRangeAt(0).cloneRange() });
   return next.mode;

@@ -92,7 +92,7 @@ The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
 
 Write Markdown directly in a card. Headings, **bold**, *italic*, lists, links, blockquotes, and code render when you leave edit mode. The app uses DM Mono, with normal and italic faces and stronger bold styling in previews.
 
-**Enter** starts a paragraph. **Shift + Enter** inserts a Markdown hard line break. Select text and use the formatting shortcuts to add bold or italic markers; selecting the marked text and repeating the shortcut removes those markers.
+**Enter** starts a paragraph. **Shift + Enter** inserts a Markdown hard line break. Select text and use the formatting shortcuts to toggle bold or italic. The result stays selected: press the same shortcut again to remove that style, or use the other shortcut to combine both. You can also reselect a formatted word without its surrounding asterisks or underscores to toggle its formatting.
 
 Case cycling advances from the selection’s current casing; mixed casing starts at lowercase. Sentence case capitalizes the start of the selection, each sentence, and each paragraph. Word Case capitalizes every word, including short words. The shortcut works on the selected Markdown source and supports typing undo.
 
@@ -134,8 +134,8 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | --- | --- |
 | Enter | Starts editing a focused card; while editing, starts a new paragraph. |
 | Shift + Enter | Inserts a Markdown hard line break while editing. |
-| Cmd/Ctrl + B | Toggles bold markers around selected text. |
-| Cmd/Ctrl + I | Toggles italic markers around selected text. |
+| Cmd/Ctrl + B | Toggles bold and keeps the result selected. |
+| Cmd/Ctrl + I | Toggles italic and keeps the result selected. |
 | Cmd/Ctrl + E | Cycles selected text through lowercase → ALL CAPS → Sentence case → Word Case, keeping it selected. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
 | Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
