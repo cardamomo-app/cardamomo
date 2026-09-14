@@ -82,7 +82,7 @@ The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
 | − / + | Adjusts canvas zoom from 50% to 150%. |
 | Zoom percentage | Resets zoom to 100% around the card nearest the center of your current view. |
 | Moon / sun | Switches between light and dark mode. Your preference is saved in this browser. |
-| Focus icon | Requests true page fullscreen and hides the header and statistics. Click again or press Escape to leave. Requires browser fullscreen support. |
+| Focus icon | Requests true page fullscreen and hides the header. Counts and controls stay visible at the bottom, dimmed until hovered. Click again or press Escape to leave. Requires browser fullscreen support. |
 | Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
 | ? | Opens the writing guide. |
 
