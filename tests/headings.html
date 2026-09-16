@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Heading shortcut checks</title>
+<button id="run">Run heading checks</button>
+<pre id="results"></pre>
+<div id="fixture"></div>
+<script type="module">
+import { createMarkdownEditor, readMarkdownEditor } from '../dist/native-editor-v1.mjs';
+import { formatCurrentHeading } from '../dist/heading-v1.mjs';
+document.querySelector('#run').addEventListener('click', () => {
+  const output = document.querySelector('#results');output.textContent = '';
+  let failed = 0;
+  function check(name, text, locate, level, expected, typedExpected) {
+    const editor = createMarkdownEditor(text);
+    document.querySelector('#fixture').replaceChildren(editor);editor.focus();
+    const range = document.createRange(), point = locate(editor);
+    range.setStart(...point);range.collapse(true);
+    document.getSelection().removeAllRanges();document.getSelection().addRange(range);
+    try {
+      formatCurrentHeading(editor, level);
+      if (readMarkdownEditor(editor) !== expected) throw Error(JSON.stringify(readMarkdownEditor(editor)));
+      if (typedExpected) {
+        document.execCommand('insertText', false, 'X');
+        if (readMarkdownEditor(editor) !== typedExpected) throw Error('Caret: ' + JSON.stringify(readMarkdownEditor(editor)));
+      }
+      output.textContent += `PASS ${name}\n`;
+    } catch (error) { failed++;output.textContent += `FAIL ${name}: ${error.message}\n`; }
+  }
+  check('only the current paragraph changes; caret stays in the text', 'Before\n\nTitle\n\nAfter',
+    e => [e.children[1].firstChild, 2], 2, 'Before\n\n## Title\n\nAfter', 'Before\n\n## TiXtle\n\nAfter');
+  check('only the current soft-break line changes', 'Before\nTitle\nAfter',
+    e => [e.firstChild.childNodes[2], 2], 3, 'Before\n### Title\nAfter');
+  check('heading prefix is replaced and caret is preserved', '#### Title',
+    e => [e.firstChild.firstChild, 7], 1, '# Title', '# TiXtle');
+  check('empty paragraph accepts a heading and typing', 'Before\n\n\n\nAfter',
+    e => [e.children[1], 0], 4, 'Before\n\n#### \n\nAfter', 'Before\n\n#### X\n\nAfter');
+  check('last blank paragraph', 'Before\n\n',
+    e => [e.lastChild, 0], 1, 'Before\n\n# ', 'Before\n\n# X');
+  check('caret between paragraph nodes', 'Before\n\nTitle',
+    e => [e, 1], 2, 'Before\n\n## Title', 'Before\n\n## XTitle');
+  check('same level is idempotent', '## Title',
+    e => [e.firstChild.firstChild, 5], 2, '## Title', '## TiXtle');
+  check('remove a heading while keeping the caret in its text', 'Before\n\n### Title\n\nAfter',
+    e => [e.children[1].firstChild, 6], 0, 'Before\n\nTitle\n\nAfter', 'Before\n\nTiXtle\n\nAfter');
+  check('remove empty heading and keep typing in the same paragraph', 'Before\n\n## \n\nAfter',
+    e => [e.children[1].firstChild, 3], 0, 'Before\n\n\n\nAfter', 'Before\n\nX\n\nAfter');
+  check('remove empty heading between soft breaks', 'Before\n## \nAfter',
+    e => [e.firstChild.childNodes[2], 3], 0, 'Before\n\nAfter', 'Before\nX\nAfter');
+  output.textContent += `\n${failed ? 'FAILED' : 'ALL PASSED'}`;
+});
+</script>

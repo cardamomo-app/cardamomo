@@ -1,12 +1,13 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { pasteMarkdown } from './clipboard-v1.mjs';
+import { formatCurrentHeading } from './heading-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs?v=3';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
 import { createBranchSpacing } from './branch-spacing-v1.mjs';
 import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
-import { installFocusMode } from './focus-mode-v1.mjs?v=2';
+import { installFocusMode } from './focus-mode-v1.mjs?v=3';
 import { navigationTarget } from './card-navigation-v1.mjs';
 import { planMerge, mergeCard } from './card-merge-v1.mjs';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
@@ -138,6 +139,15 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&/^[0-4]$/.test(e.key)){
+      e.preventDefault();e.stopPropagation();
+      if(e.repeat)return;
+      if(formatCurrentHeading(editor,Number(e.key))){
+        resetCaseCycle(editor);structuralUndoCard=null;
+        c.text=readMarkdownEditor(editor);scheduleSave();layout();
+      }
+      return;
+    }
     if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='e'){
       const selection=editor.ownerDocument.getSelection();
       if(!selection?.rangeCount||selection.isCollapsed)return;

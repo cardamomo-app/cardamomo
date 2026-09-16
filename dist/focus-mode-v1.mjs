@@ -33,6 +33,10 @@ export function installFocusMode({button,onChange,notify,doc=document}){
   doc.addEventListener('fullscreenchange',sync);
   doc.addEventListener('webkitfullscreenchange',sync);
   doc.addEventListener('keydown',event=>{
+    const editable = element => element?.isContentEditable || element?.closest?.('input,textarea,select,[role="textbox"]');
+    if(event.key.toLowerCase()==='f'&&!event.metaKey&&!event.ctrlKey&&!event.altKey&&!event.isComposing&&!event.repeat&&!event.defaultPrevented&&!active()&&!doc.querySelector('dialog[open]')&&!editable(event.target)&&!editable(doc.activeElement)){
+      event.preventDefault();event.stopPropagation();void toggle();return;
+    }
     if(event.key==='Escape'&&!event.isComposing&&active()&&!doc.querySelector('dialog[open]')){
       event.preventDefault();event.stopPropagation();void toggle();
     }
