@@ -38,6 +38,38 @@ export function toggleMarkdownEmphasis(markdown, kind) {
   }).join('\n\n');
 }
 
+function outerCode(text) {
+  const marker = text.match(/^`+/)?.[0];
+  if (!marker || text.length <= marker.length * 2 || text.match(/`+$/)?.[0] !== marker) return null;
+  let inner = text.slice(marker.length, -marker.length);
+  if ([...inner.matchAll(/`+/g)].some(match => match[0].length === marker.length)) return null;
+  // Markdown removes one padding space at each end of a code span.
+  if (inner.startsWith(' ') && inner.endsWith(' ') && /[^ ]/.test(inner)) inner = inner.slice(1, -1);
+  return { inner };
+}
+
+export function toggleMarkdownCode(markdown) {
+  // Separate spans keep line breaks intact and cannot become fenced code blocks.
+  return markdown.split('\n').map(line => {
+    const [, before, text, after] = line.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    if (!text) return line;
+    const existing = outerCode(text);
+    if (existing) return before + existing.inner + after;
+    const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map(match => match[0].length));
+    const marker = '`'.repeat(longest + 1);
+    const pad = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
+    return before + marker + pad + text + pad + marker + after;
+  }).join('\n');
+}
+
+export function surroundingCode(before, selected, after) {
+  const left = before.match(/`+ ?$/)?.[0] || '';
+  const right = after.match(/^ ?`+/)?.[0] || '';
+  const escapes = before.slice(0, -left.length).match(/\\+$/)?.[0].length || 0;
+  if (!left || !right || escapes % 2 || !outerCode(left + selected + right)) return { left: '', right: '' };
+  return { left, right };
+}
+
 export function formatMarkdownSelection(editor, kind) {
   const doc = editor.ownerDocument;
   const selection = doc.getSelection();
@@ -45,7 +77,7 @@ export function formatMarkdownSelection(editor, kind) {
   const range = selection.getRangeAt(0).cloneRange();
   if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return false;
   if (range.collapsed) {
-    const marker = kind === 'bold' ? '**' : '*';
+    const marker = kind === 'code' ? '`' : kind === 'bold' ? '**' : '*';
     const offset = selectionTextOffset(editor, range.startContainer, range.startOffset);
     if (!replaceSelectedMarkdown(editor, range, marker + marker)) return false;
     const caret = doc.createRange();
@@ -59,7 +91,7 @@ export function formatMarkdownSelection(editor, kind) {
   const before = doc.createRange(), after = doc.createRange();
   before.selectNodeContents(editor); before.setEnd(range.startContainer, range.startOffset);
   after.selectNodeContents(editor); after.setStart(range.endContainer, range.endOffset);
-  const wrappers = surroundingEmphasis(readMarkdownEditor(before.cloneContents()), markdown, readMarkdownEditor(after.cloneContents()));
+  const wrappers = (kind === 'code' ? surroundingCode : surroundingEmphasis)(readMarkdownEditor(before.cloneContents()), markdown, readMarkdownEditor(after.cloneContents()));
   if (wrappers.left) {
     const start = selectionTextOffset(editor, range.startContainer, range.startOffset) - wrappers.left.length;
     const end = selectionTextOffset(editor, range.endContainer, range.endOffset) + wrappers.right.length;
@@ -67,7 +99,7 @@ export function formatMarkdownSelection(editor, kind) {
     range.setEnd(...textPoint(editor, end, true));
     markdown = wrappers.left + markdown + wrappers.right;
   }
-  const formatted = toggleMarkdownEmphasis(markdown, kind);
+  const formatted = kind === 'code' ? toggleMarkdownCode(markdown) : toggleMarkdownEmphasis(markdown, kind);
   if (formatted === markdown) return false;
   return replaceSelectedMarkdown(editor, range, formatted);
 }

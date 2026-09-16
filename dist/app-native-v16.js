@@ -1,7 +1,7 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { pasteMarkdown } from './clipboard-v1.mjs';
 import { formatCurrentHeading } from './heading-v1.mjs';
-import { formatMarkdownSelection } from './formatting-v1.mjs?v=3';
+import { formatMarkdownSelection } from './formatting-v1.mjs?v=4';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';
@@ -170,10 +170,12 @@ function startEditing(id) {
     if(structuralUndoCard===id&&!e.isComposing&&(e.metaKey||e.ctrlKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){
       e.preventDefault();e.stopPropagation();structuralUndoCard=null;undo();return;
     }
-    if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) && ['b','i'].includes(e.key.toLowerCase())) {
+    const formatKey=e.key.toLowerCase();
+    if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) &&
+      (['b','i'].includes(formatKey)||(!e.shiftKey&&formatKey==='d'))) {
       e.preventDefault();e.stopPropagation();
       if(e.repeat)return;
-      if(formatMarkdownSelection(editor,e.key.toLowerCase()==='b'?'bold':'italic')) {
+      if(formatMarkdownSelection(editor,formatKey==='d'?'code':formatKey==='b'?'bold':'italic')) {
         c.text=readMarkdownEditor(editor);scheduleSave();layout();
       }
       return;

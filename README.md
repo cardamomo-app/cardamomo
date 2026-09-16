@@ -98,6 +98,8 @@ Write Markdown directly in a card. Headings, **bold**, *italic*, lists, links, b
 
 With no text selected, **Cmd/Ctrl + B** inserts `****` and **Cmd/Ctrl + I** inserts `**`, placing the cursor between the opening and closing markers so you can type formatted text.
 
+**Cmd/Ctrl + D** toggles inline code on selected text and keeps it selected. Press it again to remove the backticks, or reselect the text inside existing backticks to remove them. With no selection, it inserts a pair of backticks with the cursor between them. Each selected line gets its own code span; Markdown inside code is treated literally. This shortcut only applies inside a card editor; outside it, the browser's bookmark shortcut is unchanged.
+
 Case cycling advances from the selection’s current casing; mixed casing starts at lowercase. Sentence case capitalizes the start of the selection, each sentence, and each paragraph. Word Case capitalizes every word, including short words. The shortcut works on the selected Markdown source and supports typing undo.
 
 Pasting rich text converts bold, italics, lists, headings, links, quotes, and code into Markdown. Source fonts, colors, and backgrounds are discarded immediately, so pasted content uses Cardamomo’s editor styling. Plain Markdown keeps its original syntax. Paste supports the normal typing undo.
@@ -142,6 +144,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Shift + Enter | Inserts a Markdown hard line break while editing. |
 | Cmd/Ctrl + B | Toggles bold on selected text; with no selection, inserts bold markers with the cursor between them. |
 | Cmd/Ctrl + I | Toggles italic on selected text; with no selection, inserts italic markers with the cursor between them. |
+| Cmd/Ctrl + D | Toggles inline code on selected text; with no selection, inserts backticks with the cursor between them. |
 | Cmd/Ctrl + E | Cycles selected text through lowercase → ALL CAPS → Sentence case → Word Case, keeping it selected. |
 | Ctrl + 1 / 2 / 3 / 4 | Changes the current Markdown line to H1 / H2 / H3 / H4, replacing any existing heading prefix. No selection needed. |
 | Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |

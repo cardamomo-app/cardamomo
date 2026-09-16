@@ -1,6 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toggleMarkdownEmphasis, surroundingEmphasis } from '../dist/formatting-v1.mjs';
+import { toggleMarkdownEmphasis, surroundingEmphasis, toggleMarkdownCode, surroundingCode } from '../dist/formatting-v1.mjs';
+
+test('inline code toggles without interpreting its content as Markdown', () => {
+  assert.equal(toggleMarkdownCode('word'), '`word`');
+  assert.equal(toggleMarkdownCode('`word`'), 'word');
+  assert.equal(toggleMarkdownCode('**word**'), '`**word**`');
+  assert.equal(toggleMarkdownCode('  word  '), '  `word`  ');
+  assert.equal(toggleMarkdownCode('One\n\nTwo'), '`One`\n\n`Two`');
+  assert.equal(toggleMarkdownCode('One\nTwo'), '`One`\n`Two`');
+  assert.equal(toggleMarkdownCode('  \n\n'), '  \n\n');
+});
+
+test('inline code handles literal backticks and padded delimiters', () => {
+  for (const text of ['a`b', 'a``b', '`leading', 'trailing`', '`', '``', '`one` and `two`']) {
+    assert.equal(toggleMarkdownCode(toggleMarkdownCode(text)), text);
+  }
+  assert.equal(toggleMarkdownCode('a`b'), '``a`b``');
+  assert.equal(toggleMarkdownCode('`` `word` ``'), '`word`');
+});
+
+test('recognizes code delimiters surrounding a reselected word', () => {
+  assert.deepEqual(surroundingCode('Before `', 'word', '` after'), { left: '`', right: '`' });
+  assert.deepEqual(surroundingCode('Before `` ', '`word`', ' `` after'), { left: '`` ', right: ' ``' });
+  assert.deepEqual(surroundingCode('Before \\`', 'word', '` after'), { left: '', right: '' });
+  assert.deepEqual(surroundingCode('Before `', 'word', '`` after'), { left: '', right: '' });
+  assert.deepEqual(surroundingCode('Before `one` and ', 'two', '` after'), { left: '', right: '' });
+});
 
 test('bold and italic toggle individually and in combination', () => {
   assert.equal(toggleMarkdownEmphasis('word', 'bold'), '**word**');

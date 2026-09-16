@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Inline code shortcut checks</title>
+<style>.card-editor { white-space: pre-wrap; }</style>
+<button id="run">Run formatting checks</button>
+<pre id="results"></pre>
+<p>Click the editor to test Command+D with a real keyboard.</p>
+<div id="fixture"></div>
+<pre id="keys"></pre>
+<script type="module">
+import { createMarkdownEditor, readMarkdownEditor } from '../dist/native-editor-v1.mjs';
+import { formatMarkdownSelection } from '../dist/formatting-v1.mjs';
+const fixture = document.querySelector('#fixture');
+function setup(text, start = 0, end = text.length) {
+  const editor = createMarkdownEditor(text);fixture.replaceChildren(editor);editor.focus();
+  const range = document.createRange(), node = editor.firstChild.firstChild;
+  range.setStart(node, start);range.setEnd(node, end);
+  const selection = document.getSelection();selection.removeAllRanges();selection.addRange(range);
+  editor.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
+      event.preventDefault();event.stopPropagation();
+      formatMarkdownSelection(editor, 'code');
+      document.querySelector('#keys').textContent = 'Received ' + (event.metaKey ? 'Command' : 'Control') + '+D: ' + readMarkdownEditor(editor);
+    }
+  });
+  return editor;
+}
+setup('Inline code test');
+document.querySelector('#run').addEventListener('click', () => {
+  const output = document.querySelector('#results');output.textContent = '';let failed = 0;
+  const equal = (actual, expected) => {if (actual !== expected) throw Error(JSON.stringify({actual, expected}));};
+  function check(name, action) {
+    try {action();output.textContent += 'PASS ' + name + '\n';}
+    catch (error) {failed++;output.textContent += 'FAIL ' + name + ': ' + error.message + '\n';}
+  }
+  check('selection remains selected and toggles back', () => {
+    const e = setup('Before word after', 7, 11);
+    formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), 'Before `word` after');
+    equal(document.getSelection().toString(), '`word`');
+    formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), 'Before word after');
+    equal(document.getSelection().toString(), 'word');
+  });
+  check('reselected word removes surrounding code markers', () => {
+    const e = setup('Before `word` after', 8, 12);
+    formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), 'Before word after');
+    equal(document.getSelection().toString(), 'word');
+  });
+  check('caret lands between new backticks', () => {
+    const e = setup('Before  after', 7, 7);
+    formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), 'Before `` after');
+    document.execCommand('insertText', false, 'typed');equal(readMarkdownEditor(e), 'Before `typed` after');
+  });
+  check('empty card accepts code and typing', () => {
+    const e = createMarkdownEditor('');fixture.replaceChildren(e);e.focus();
+    const range = document.createRange();range.selectNodeContents(e.firstChild);range.collapse(true);
+    document.getSelection().removeAllRanges();document.getSelection().addRange(range);
+    formatMarkdownSelection(e, 'code');document.execCommand('insertText', false, 'typed');
+    equal(readMarkdownEditor(e), '`typed`');
+  });
+  check('backticks in selected text round trip', () => {
+    const e = setup('a`b');formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), '``a`b``');
+    formatMarkdownSelection(e, 'code');equal(readMarkdownEditor(e), 'a`b');
+  });
+  check('native undo restores text', () => {
+    const e = setup('word');formatMarkdownSelection(e, 'code');document.execCommand('undo');
+    equal(readMarkdownEditor(e), 'word');
+  });
+  check('bold and italic still combine and toggle', () => {
+    const e = setup('word');formatMarkdownSelection(e, 'bold');formatMarkdownSelection(e, 'italic');
+    equal(readMarkdownEditor(e), '***word***');formatMarkdownSelection(e, 'bold');equal(readMarkdownEditor(e), '*word*');
+  });
+  output.textContent += '\n' + (failed ? 'FAILED' : 'ALL PASSED');
+  setup('Inline code test');
+});
+</script>
