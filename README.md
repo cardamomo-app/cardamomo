@@ -143,8 +143,8 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Cmd/Ctrl + B | Toggles bold on selected text; with no selection, inserts bold markers with the cursor between them. |
 | Cmd/Ctrl + I | Toggles italic on selected text; with no selection, inserts italic markers with the cursor between them. |
 | Cmd/Ctrl + E | Cycles selected text through lowercase → ALL CAPS → Sentence case → Word Case, keeping it selected. |
-| Cmd/Ctrl + 1 / 2 / 3 / 4 | Changes the current Markdown line to H1 / H2 / H3 / H4, replacing any existing heading prefix. No selection needed. |
-| Cmd/Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |
+| Ctrl + 1 / 2 / 3 / 4 | Changes the current Markdown line to H1 / H2 / H3 / H4, replacing any existing heading prefix. No selection needed. |
+| Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
 | Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
 | Escape | Leaves focus mode, finishes editing, or cancels an active drag. |
