@@ -100,6 +100,8 @@ With no text selected, **Cmd/Ctrl + B** inserts `****` and **Cmd/Ctrl + I** inse
 
 **Cmd/Ctrl + D** toggles inline code on selected text and keeps it selected. Press it again to remove the backticks, or reselect the text inside existing backticks to remove them. With no selection, it inserts a pair of backticks with the cursor between them. Each selected line gets its own code span; Markdown inside code is treated literally. This shortcut only applies inside a card editor; outside it, the browser's bookmark shortcut is unchanged.
 
+**Cmd/Ctrl + K** wraps selected text in `[text](url)` and keeps the label selected; press again to remove the link. With no selection, it inserts `[](url)` with the cursor inside the brackets. A complete HTTP/HTTPS address on the clipboard fills the destination automatically (addresses beginning with `www.` use HTTPS). Other clipboard content, or unavailable clipboard access, leaves the parentheses empty. Safari may show a Paste prompt when reading content copied elsewhere. Moving the cursor or typing while clipboard access is pending cancels the insertion.
+
 Case cycling advances from the selection’s current casing; mixed casing starts at lowercase. Sentence case capitalizes the start of the selection, each sentence, and each paragraph. Word Case capitalizes every word, including short words. The shortcut works on the selected Markdown source and supports typing undo.
 
 Pasting rich text converts bold, italics, lists, headings, links, quotes, and code into Markdown. Source fonts, colors, and backgrounds are discarded immediately, so pasted content uses Cardamomo’s editor styling. Plain Markdown keeps its original syntax. Paste supports the normal typing undo.
@@ -145,6 +147,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Cmd/Ctrl + B | Toggles bold on selected text; with no selection, inserts bold markers with the cursor between them. |
 | Cmd/Ctrl + I | Toggles italic on selected text; with no selection, inserts italic markers with the cursor between them. |
 | Cmd/Ctrl + D | Toggles inline code on selected text; with no selection, inserts backticks with the cursor between them. |
+| Cmd/Ctrl + K | Toggles a hyperlink; keeps the label selected, or places the cursor inside empty brackets. Uses a copied web address as the destination. |
 | Cmd/Ctrl + E | Cycles selected text through lowercase → ALL CAPS → Sentence case → Word Case, keeping it selected. |
 | Ctrl + 1 / 2 / 3 / 4 | Changes the current Markdown line to H1 / H2 / H3 / H4, replacing any existing heading prefix. No selection needed. |
 | Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |

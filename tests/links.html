@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hyperlink shortcut checks</title>
+<style>.card-editor { white-space: pre-wrap; border: 1px solid #999; padding: 20px; }</style>
+<button id="run">Run hyperlink checks</button>
+<pre id="results"></pre>
+<label>Test URL <input id="url" value="https://example.com/page"></label>
+<button id="copy">Copy test URL and select label</button>
+<p>Copy the test URL, then select text in the editor and press Command+K.</p>
+<div id="fixture"></div>
+<pre id="keys"></pre>
+<script type="module">
+import { createMarkdownEditor, readMarkdownEditor } from '../dist/native-editor-v1.mjs';
+import { formatMarkdownLink } from '../dist/link-v1.mjs';
+const fixture = document.querySelector('#fixture');
+function select(editor, start, end = start) {
+  editor.focus();const range = document.createRange();
+  const node = editor.firstChild.firstChild;
+  range.setStart(node.nodeType === 3 ? node : editor.firstChild, start);
+  range.setEnd(node.nodeType === 3 ? node : editor.firstChild, end);
+  document.getSelection().removeAllRanges();document.getSelection().addRange(range);
+}
+function setup(text = 'Before word after', start = 7, end = 11) {
+  const editor = createMarkdownEditor(text);fixture.replaceChildren(editor);select(editor,start,end);
+  editor.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k') {
+      event.preventDefault();event.stopPropagation();
+      void formatMarkdownLink(editor).then(changed => document.querySelector('#keys').textContent =
+        'Command+K changed=' + changed + ': ' + readMarkdownEditor(editor));
+    }
+  });return editor;
+}
+setup();
+document.querySelector('#copy').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(document.querySelector('#url').value);setup();
+});
+document.querySelector('#run').addEventListener('click', async () => {
+  const output = document.querySelector('#results');output.textContent = '';let failed = 0;
+  const equal = (actual, expected) => {if (actual !== expected) throw Error(JSON.stringify({actual,expected}));};
+  const log = text => {const line=document.createElement('div');line.textContent=text;output.append(line);};
+  const denied = () => {throw Error('Clipboard denied');};
+  async function check(name, action) {
+    try {await action();log('PASS ' + name);}
+    catch (error) {failed++;log('FAIL ' + name + ': ' + error.message);}
+  }
+  await check('selected label stays selected; repeated shortcut removes link without reading clipboard', async () => {
+    const e = setup();await formatMarkdownLink(e, () => 'https://example.com/page');
+    equal(readMarkdownEditor(e), 'Before [word](https://example.com/page) after');
+    equal(document.getSelection().toString(), 'word');
+    let reads=0;await formatMarkdownLink(e, () => {reads++;return '';});
+    equal(reads, 0);equal(readMarkdownEditor(e), 'Before word after');equal(document.getSelection().toString(), 'word');
+  });
+  await check('no selection inserts URL and keeps caret in brackets', async () => {
+    const e = setup('Before  after',7,7);await formatMarkdownLink(e, () => 'https://example.com/page');
+    equal(readMarkdownEditor(e), 'Before [](https://example.com/page) after');
+    document.execCommand('insertText',false,'label');equal(readMarkdownEditor(e),'Before [label](https://example.com/page) after');
+  });
+  await check('empty editor and denied clipboard still permit typing label', async () => {
+    const e = setup('',0,0);await formatMarkdownLink(e,denied);
+    equal(readMarkdownEditor(e),'[]()');document.execCommand('insertText',false,'label');equal(readMarkdownEditor(e),'[label]()');
+  });
+  await check('non-URL clipboard leaves destination empty', async () => {
+    const e=setup();await formatMarkdownLink(e,()=> 'ordinary text');equal(readMarkdownEditor(e),'Before [word]() after');
+  });
+  await check('selecting complete existing link removes only its syntax', async () => {
+    const text='[word](https://a.test/a(b))';
+    const e=setup(text,0,text.length);await formatMarkdownLink(e,denied);equal(readMarkdownEditor(e),'word');
+  });
+  await check('reselected label removes existing link', async () => {
+    const e=setup('Before [word](https://example.com) after',8,12);await formatMarkdownLink(e,denied);
+    equal(readMarkdownEditor(e),'Before word after');
+  });
+  await check('single undo and redo restore original and link', async () => {
+    const e=setup();await formatMarkdownLink(e,()=> 'https://example.com/page');
+    document.execCommand('undo');equal(readMarkdownEditor(e),'Before word after');
+    document.execCommand('redo');equal(readMarkdownEditor(e),'Before [word](https://example.com/page) after');
+  });
+  await check('moving selection during clipboard read cancels safely', async () => {
+    const e=setup();let resolve;const operation=formatMarkdownLink(e,()=>new Promise(r=>resolve=r));
+    select(e,0);resolve('https://example.com');equal(await operation,false);equal(readMarkdownEditor(e),'Before word after');
+  });
+  await check('typing during clipboard read is preserved', async () => {
+    const e=setup();let resolve;const operation=formatMarkdownLink(e,()=>new Promise(r=>resolve=r));
+    document.execCommand('insertText',false,'new');resolve('https://example.com');equal(await operation,false);equal(readMarkdownEditor(e),'Before new after');
+  });
+  await check('repeated shortcut while clipboard pending does not duplicate links', async () => {
+    const e=setup();let resolve;const operation=formatMarkdownLink(e,()=>new Promise(r=>resolve=r));
+    equal(await formatMarkdownLink(e,()=>''),false);resolve('');await operation;equal(readMarkdownEditor(e),'Before [word]() after');
+  });
+  log(failed ? 'FAILED' : 'ALL PASSED');setup();
+});
+</script>

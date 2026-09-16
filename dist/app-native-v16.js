@@ -1,6 +1,7 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { pasteMarkdown } from './clipboard-v1.mjs';
 import { formatCurrentHeading } from './heading-v1.mjs';
+import { formatMarkdownLink } from './link-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs?v=4';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
@@ -171,6 +172,13 @@ function startEditing(id) {
       e.preventDefault();e.stopPropagation();structuralUndoCard=null;undo();return;
     }
     const formatKey=e.key.toLowerCase();
+    if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&formatKey==='k') {
+      e.preventDefault();e.stopPropagation();
+      if(!e.repeat)void formatMarkdownLink(editor).then(changed=>{
+        if(changed&&editor.isConnected){resetCaseCycle(editor);structuralUndoCard=null;c.text=readMarkdownEditor(editor);scheduleSave();layout();}
+      });
+      return;
+    }
     if(!e.isComposing && !e.altKey && (e.metaKey || e.ctrlKey) &&
       (['b','i'].includes(formatKey)||(!e.shiftKey&&formatKey==='d'))) {
       e.preventDefault();e.stopPropagation();
