@@ -63,6 +63,8 @@ The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
 
 ### Cards and connections
 
+The first child connects with a straight horizontal line at the higher of its midpoint and the parent's midpoint. Additional children connect through a vertical branch.
+
 | Control | What it does |
 | --- | --- |
 | Card body | Opens the card for editing. |

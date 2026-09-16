@@ -44,8 +44,10 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
    const p=positions.get(c.id),kids=siblings(state,c.id),right=p.x+w,mid=right+gapX/2;
    if(kids.length){
      const folded=c.collapsed===true,button=document.createElement('button');
+     const first=positions.get(kids[0].id),parentMid=p.y+p.h/2;
+     const branchY=first?Math.min(parentMid,first.y+first.h/2):parentMid;
      button.className='branch-toggle'+(folded?' collapsed':'');button.dataset.branchId=c.id;
-     button.style.left=right+'px';button.style.top=(p.y+p.h/2)+'px';button.style.width=(gapX/2)+'px';
+     button.style.left=right+'px';button.style.top=branchY+'px';button.style.width=(gapX/2)+'px';
      button.setAttribute('aria-expanded',String(!folded));
      button.setAttribute('aria-label',`${folded?'Expand':'Collapse'} children of card ${numbers.get(c.id)}`);
      button.title=folded?`Expand ${orderedCards(state,c.id).length} hidden cards`:'Collapse this branch';
@@ -54,7 +56,10 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
        additions.querySelector(`[data-branch-id="${c.id}"]`)?.focus({preventScroll:true});
      });
      additions.append(button);
-     if(!folded)for(const k of kids){const q=positions.get(k.id);line(`M${mid},${p.y+p.h/2} V${q.y+q.h/2} H${q.x}`);}
+     if(!folded)for(const [i,k] of kids.entries()){
+       const q=positions.get(k.id);
+       line(i===0?`M${mid},${branchY} H${q.x}`:`M${mid},${branchY} V${q.y+q.h/2} H${q.x}`);
+     }
    }else plus(right+38,p.y+p.h/2,c.id,'right','Add child to the right');
  }
 }
