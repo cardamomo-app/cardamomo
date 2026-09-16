@@ -1,6 +1,6 @@
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { pasteMarkdown } from './clipboard-v1.mjs';
-import { formatMarkdownSelection } from './formatting-v1.mjs?v=2';
+import { formatMarkdownSelection } from './formatting-v1.mjs?v=3';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs';

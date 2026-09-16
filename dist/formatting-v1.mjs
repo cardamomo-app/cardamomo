@@ -41,9 +41,19 @@ export function toggleMarkdownEmphasis(markdown, kind) {
 export function formatMarkdownSelection(editor, kind) {
   const doc = editor.ownerDocument;
   const selection = doc.getSelection();
-  if (!selection?.rangeCount || selection.isCollapsed) return false;
+  if (!selection?.rangeCount) return false;
   const range = selection.getRangeAt(0).cloneRange();
   if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return false;
+  if (range.collapsed) {
+    const marker = kind === 'bold' ? '**' : '*';
+    const offset = selectionTextOffset(editor, range.startContainer, range.startOffset);
+    if (!replaceSelectedMarkdown(editor, range, marker + marker)) return false;
+    const caret = doc.createRange();
+    caret.setStart(...textPoint(editor, offset + marker.length));
+    caret.collapse(true);
+    selection.removeAllRanges();selection.addRange(caret);
+    return true;
+  }
   let markdown = readMarkdownEditor(range.cloneContents());
   if (!markdown.trim()) return false;
   const before = doc.createRange(), after = doc.createRange();
