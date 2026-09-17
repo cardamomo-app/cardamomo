@@ -1,3 +1,4 @@
+import { cardLinkTarget, isCardLink, storeCardLinks, displayCardLinks } from './card-links-v1.mjs';
 import { openDocument, serializeDocument } from './document-file-v1.mjs';
 import { pasteMarkdown } from './clipboard-v1.mjs';
 import { formatCurrentHeading } from './heading-v1.mjs';
@@ -18,6 +19,10 @@ const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
 let structuralUndoCard=null;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));if(validState(saved))state=saved;}catch{storageFailed=true;}
+const lexLinks=text=>marked.lexer(text,{gfm:true});
+const storedText=text=>storeCardLinks(text,state,lexLinks);
+const readCardEditor=editor=>storedText(readMarkdownEditor(editor));
+for(const card of state.cards)card.text=storedText(card.text);
 const clone=()=>JSON.stringify(state);
 function checkpoint(){undoStack.push(clone());if(undoStack.length>80)undoStack.shift();redoStack=[];updateStats();}
 function save(){clearTimeout(saveTimer);try{localStorage.setItem(STORAGE_KEY,clone());storageFailed=false;$('#save-status').textContent='saved in this browser';}catch{storageFailed=true;$('#save-status').textContent='not saved · please export';}updateStats();}
@@ -29,7 +34,15 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
  const el=document.createElement('article');el.className='card';el.dataset.id=c.id;el.tabIndex=0;el.setAttribute('aria-label',`Card ${i+1}, column ${depth(state,c)+1}`);
  const handle=document.createElement('button');handle.className='drag-handle';handle.innerHTML='<span aria-hidden="true">⠿</span>';handle.title='Drag to reorder · Alt + ↑ / ↓';handle.setAttribute('aria-label',`Move card ${i+1}`);handle.addEventListener('pointerdown',e=>startDrag(e,c.id));handle.addEventListener('click',e=>e.stopPropagation());
  const del=document.createElement('button');del.className='delete-card';del.textContent='×';del.title='Remove card (undo available)';del.setAttribute('aria-label',`Remove card ${i+1}`);del.addEventListener('click',e=>{e.stopPropagation();finishEditing();checkpoint();removeCard(state,c.id);save();render();toast('Card removed. Undo to bring it back.');});
- const content=document.createElement('div');content.className='card-content';content.innerHTML=preview(c.text);content.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer';a.addEventListener('click',e=>e.stopPropagation());});content.querySelectorAll('img').forEach(img=>{img.addEventListener('load',layout);img.addEventListener('error',layout);});
+ const content=document.createElement('div');content.className='card-content';content.innerHTML=preview(c.text);content.querySelectorAll('a').forEach(a=>{
+   const destination=a.getAttribute('href')||'';
+   if(isCardLink(destination)){
+     const target=cardLinkTarget(state,destination),number=target?orderedCards(state).findIndex(card=>card.id===target)+1:null;
+     a.title=number?`Go to card ${number}`:'Destination card not found';
+     a.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();const id=cardLinkTarget(state,destination);if(id)startEditing(id);else toast('Destination card not found. It may have been removed.');});
+     a.addEventListener('keydown',event=>{if(event.key==='Enter')event.stopPropagation();});
+   }else{a.target='_blank';a.rel='noopener noreferrer';a.addEventListener('click',event=>event.stopPropagation());}
+ });content.querySelectorAll('img').forEach(img=>{img.addEventListener('load',layout);img.addEventListener('error',layout);});
  const order=document.createElement('span');order.className='card-order';order.textContent=String(i+1).padStart(2,'0');el.append(handle,del,content,order);el.addEventListener('click',()=>startEditing(c.id));
  el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=visibleCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
  }updateStats();layout();}
@@ -122,19 +135,19 @@ function startEditing(id) {
   checkpoint(); editing=id;
   const el=cardsEl.querySelector(`[data-id="${id}"]`);
   el.classList.add('editing');
-  const editor=createMarkdownEditor(c.text);
+  const editor=createMarkdownEditor(displayCardLinks(c.text,state,lexLinks));
   el.querySelector('.card-content').replaceWith(editor);
   let pendingLayout=0;
   editor.addEventListener('paste',event=>{
     if(pasteMarkdown(editor,event)){
       resetCaseCycle(editor);structuralUndoCard=null;
-      c.text=readMarkdownEditor(editor);scheduleSave();layout();
+      c.text=readCardEditor(editor);scheduleSave();layout();
     }
   });
   editor.addEventListener('input',()=>{
     resetCaseCycle(editor);
     structuralUndoCard=null;
-    c.text=readMarkdownEditor(editor);
+    c.text=readCardEditor(editor);
     scheduleSave();
     // Let the native editing operation finish before measuring card positions.
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
@@ -145,7 +158,7 @@ function startEditing(id) {
       if(e.repeat)return;
       if(formatCurrentHeading(editor,Number(e.key))){
         resetCaseCycle(editor);structuralUndoCard=null;
-        c.text=readMarkdownEditor(editor);scheduleSave();layout();
+        c.text=readCardEditor(editor);scheduleSave();layout();
       }
       return;
     }
@@ -157,14 +170,14 @@ function startEditing(id) {
       e.preventDefault();e.stopPropagation();
       if(e.repeat)return;
       const mode=cycleSelectedText(editor);
-      if(mode!==null){structuralUndoCard=null;c.text=readMarkdownEditor(editor);scheduleSave();layout();toast(caseModes[mode]);}
+      if(mode!==null){structuralUndoCard=null;c.text=readCardEditor(editor);scheduleSave();layout();toast(caseModes[mode]);}
       return;
     }
     if(!e.isComposing&&!e.altKey&&(e.metaKey||e.ctrlKey)&&e.key==='Enter'){
       e.preventDefault();e.stopPropagation();
       const parts=readEditorSplit(editor);if(!parts)return;
       finishEditing();checkpoint();
-      const next=splitCard(state,id,parts.before,parts.after);
+      const next=splitCard(state,id,storedText(parts.before),storedText(parts.after));
       save();render();startEditing(next.id);focusEditorStart(cardsEl.querySelector('.card-editor'));reveal(next.id);
       structuralUndoCard=next.id;return;
     }
@@ -175,7 +188,7 @@ function startEditing(id) {
     if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&formatKey==='k') {
       e.preventDefault();e.stopPropagation();
       if(!e.repeat)void formatMarkdownLink(editor).then(changed=>{
-        if(changed&&editor.isConnected){resetCaseCycle(editor);structuralUndoCard=null;c.text=readMarkdownEditor(editor);scheduleSave();layout();}
+        if(changed&&editor.isConnected){resetCaseCycle(editor);structuralUndoCard=null;c.text=readCardEditor(editor);scheduleSave();layout();}
       });
       return;
     }
@@ -184,7 +197,7 @@ function startEditing(id) {
       e.preventDefault();e.stopPropagation();
       if(e.repeat)return;
       if(formatMarkdownSelection(editor,formatKey==='d'?'code':formatKey==='b'?'bold':'italic')) {
-        c.text=readMarkdownEditor(editor);scheduleSave();layout();
+        c.text=readCardEditor(editor);scheduleSave();layout();
       }
       return;
     }
@@ -199,7 +212,7 @@ function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===c
 function reveal(id){if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
 function replaceDraft(next,message,view={zoom:1,scrollLeft:0,scrollTop:0}){
-  finishEditing();checkpoint();state=next;
+  finishEditing();checkpoint();state=next;for(const card of state.cards)card.text=storedText(card.text);
   zoom=view.zoom;$('#reset-view').textContent=Math.round(zoom*100)+'%';save();render();
   const restoreView=()=>viewport.scrollTo({left:view.scrollLeft,top:view.scrollTop,behavior:'instant'});
   restoreView();
@@ -316,4 +329,4 @@ window.addEventListener('resize',()=>{layout();if(editing)reveal(editing);});win
 installFocusMode({button:$('#focus-toggle'),notify:toast,onChange:()=>requestAnimationFrame(()=>{layout();if(editing){cardsEl.querySelector('.card-editor')?.focus({preventScroll:true});reveal(editing);}})});
 if(document.modelContext?.registerTool){const lifecycle=new AbortController();const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
  register({name:'read_draft',title:'Read draft',description:'Read the current Cardamomo cards in Markdown export order.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(){return{title:state.title,cards:orderedCards(state).map(c=>({...c,column:depth(state,c)+1})),markdown:exportMarkdown(state)};}});
- register({name:'add_card',title:'Add card',description:'Create a sibling before or after a card, or its first child to the right.',inputSchema:{type:'object',properties:{cardId:{type:'string'},direction:{type:'string',enum:['before','after','right']},markdown:{type:'string'}},required:['cardId','direction','markdown'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute(input){if(!input||typeof input.markdown!=='string'||!['before','after','right'].includes(input.direction)||!state.cards.some(c=>c.id===input.cardId))throw Error('An existing card, valid direction, and Markdown string are required.');if(input.direction==='right'&&siblings(state,input.cardId).length)throw Error('This card already has children. Add a sibling above or below one of its children.');finishEditing();checkpoint();const c=addCard(state,input.cardId,input.direction);c.text=input.markdown;save();render();reveal(c.id);return{id:c.id,column:depth(state,c)+1};}});window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}
+ register({name:'add_card',title:'Add card',description:'Create a sibling before or after a card, or its first child to the right.',inputSchema:{type:'object',properties:{cardId:{type:'string'},direction:{type:'string',enum:['before','after','right']},markdown:{type:'string'}},required:['cardId','direction','markdown'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute(input){if(!input||typeof input.markdown!=='string'||!['before','after','right'].includes(input.direction)||!state.cards.some(c=>c.id===input.cardId))throw Error('An existing card, valid direction, and Markdown string are required.');if(input.direction==='right'&&siblings(state,input.cardId).length)throw Error('This card already has children. Add a sibling above or below one of its children.');finishEditing();checkpoint();const c=addCard(state,input.cardId,input.direction);c.text=storedText(input.markdown);save();render();reveal(c.id);return{id:c.id,column:depth(state,c)+1};}});window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}
