@@ -1,5 +1,5 @@
-import { depth, orderedCards, siblings } from './model-v3.mjs';
-import { navigationTarget } from './card-navigation-v1.mjs';
+import { depth, orderedCards, siblings } from './model-v3.mjs?v=dock1';
+import { navigationTarget } from './card-navigation-v1.mjs?v=dock1';
 
 // Inspect first: a refused merge must not change content, folds, or history.
 export function planMerge(state,id,key){

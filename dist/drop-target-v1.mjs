@@ -1,4 +1,4 @@
-import { depth, orderedCards } from './model-v3.mjs';
+import { depth, orderedCards } from './model-v3.mjs?v=dock1';
 
 // Exclude the entire moving branch so a card can never become its own ancestor.
 export function findDropTarget(state,id,column,y,rects){

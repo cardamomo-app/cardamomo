@@ -1,4 +1,4 @@
-import { depth, siblings } from './model-v3.mjs';
+import { depth, siblings } from './model-v3.mjs?v=dock1';
 
 export const CARD_GAP=86;
 // Two terminal buttons sit 38px from their cards and are 27px wide.

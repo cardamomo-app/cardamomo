@@ -1,4 +1,4 @@
-import { orderedCards } from './model-v3.mjs';
+import { orderedCards } from './model-v3.mjs?v=dock1';
 import { inlineLink } from './link-v1.mjs';
 
 export function cardLinkTarget(state, destination) {

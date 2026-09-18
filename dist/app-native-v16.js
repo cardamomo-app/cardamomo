@@ -1,23 +1,24 @@
-import { cardLinkTarget, isCardLink, storeCardLinks, displayCardLinks } from './card-links-v1.mjs';
-import { openDocument, serializeDocument } from './document-file-v1.mjs';
+import { dockRoot, dockBranch, restoreDockBranch } from './dock-v1.mjs';
+import { cardLinkTarget, isCardLink, storeCardLinks, displayCardLinks } from './card-links-v1.mjs?v=dock1';
+import { openDocument, serializeDocument } from './document-file-v1.mjs?v=dock1';
 import { pasteMarkdown } from './clipboard-v1.mjs';
 import { formatCurrentHeading } from './heading-v1.mjs';
 import { formatMarkdownLink } from './link-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs?v=4';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
-import { findDropTarget } from './drop-target-v1.mjs';
-import { createBranchSpacing } from './branch-spacing-v1.mjs';
-import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs';
+import { findDropTarget } from './drop-target-v1.mjs?v=dock1';
+import { createBranchSpacing } from './branch-spacing-v1.mjs?v=dock1';
+import { visibleCards, toggleBranch, expandAncestors } from './branch-view-v1.mjs?v=dock1';
 import { installFocusMode } from './focus-mode-v1.mjs?v=3';
-import { navigationTarget } from './card-navigation-v1.mjs';
-import { planMerge, mergeCard } from './card-merge-v1.mjs';
+import { navigationTarget } from './card-navigation-v1.mjs?v=dock1';
+import { planMerge, mergeCard } from './card-merge-v1.mjs?v=dock1';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
-import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs';
+import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs?v=dock1';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
-let structuralUndoCard=null;
+let structuralUndoCard=null,dockOpen=false,dockTemporary=false,dockCloseTimer,dragSession=false,cancelActiveDrag=null,canvasBaseX=70;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));if(validState(saved))state=saved;}catch{storageFailed=true;}
 const lexLinks=text=>marked.lexer(text,{gfm:true});
 const storedText=text=>storeCardLinks(text,state,lexLinks);
@@ -45,8 +46,9 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
  });content.querySelectorAll('img').forEach(img=>{img.addEventListener('load',layout);img.addEventListener('error',layout);});
  const order=document.createElement('span');order.className='card-order';order.textContent=String(i+1).padStart(2,'0');el.append(handle,del,content,order);el.addEventListener('click',()=>startEditing(c.id));
  el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=visibleCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
- }updateStats();layout();}
+ }renderDock();updateStats();layout();}
 function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,frame=viewport.getBoundingClientRect(),baseX=Math.max(pad,(frame.width/zoom-w)/2),baseY=Math.max(90,(frame.height/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map(),gapBetween=createBranchSpacing(view);
+ canvasBaseX=baseX;
  function span(c){const kids=siblings(view,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n,i)=>v+span(n)+(i?gapBetween(kids[i-1],n):0),0));spans.set(c.id,h);return h;}siblings(view,null).forEach(span);positions=new Map();
  function place(list,start){let y=start;for(const [i,c] of list.entries()){const col=depth(state,c);positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(view,c.id),y);y+=spans.get(c.id)+gapBetween(c,list[i+1]);}}place(siblings(view,null),baseY);
  const rightRoom=Math.max(100,(frame.width/zoom-w)/2);
@@ -54,6 +56,10 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
  function line(d){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);connections.append(p);}
  function plus(x,y,id,dir,label){const b=document.createElement('button');b.className='add-button';b.textContent='+';b.style.left=x+'px';b.style.top=y+'px';b.title=label;b.setAttribute('aria-label',label);b.addEventListener('click',()=>insert(id,dir));additions.append(b);}
  for(const parent of [null,...view.cards.map(c=>c.id)]){const groups=new Map();for(const card of siblings(view,parent)){const column=depth(state,card);if(!groups.has(column))groups.set(column,[]);groups.get(column).push(card);}for(const list of groups.values()){if(!list.length)continue;const first=positions.get(list[0].id);plus(first.x+w/2,first.y-38,list[0].id,'before','Add card above');for(let i=0;i<list.length;i++){const c=list[i],p=positions.get(c.id),next=list[i+1]&&positions.get(list[i+1].id);if(next){line(`M${p.x+w/2},${p.y+p.h} V${next.y}`);plus(p.x+w/2,(p.y+p.h+next.y)/2,c.id,'after','Insert card between');}else plus(p.x+w/2,p.y+p.h+38,c.id,'after','Add card below');}}}
+ if(!view.cards.length){
+   const b=document.createElement('button');b.className='add-button';b.textContent='+';b.setAttribute('aria-label','Add card to canvas');b.title='Add card to canvas';b.style.left=(baseX+w/2)+'px';b.style.top=(baseY+100)+'px';
+   b.addEventListener('click',()=>{checkpoint();const c=newCard();state.cards.push(c);save();render();startEditing(c.id);});additions.append(b);
+ }
  const numbers=new Map(orderedCards(state).map((c,i)=>[c.id,i+1]));
  for(const c of view.cards){
    const p=positions.get(c.id),kids=siblings(state,c.id),right=p.x+w,mid=right+gapX/2;
@@ -131,6 +137,8 @@ function startEditing(id) {
   finishEditing();
   const c=state.cards.find(c=>c.id===id);
   if(!c)return;
+  const parked=dockRoot(state,id);
+  if(parked){setDock(true);$('#dock-cards').querySelector(`[data-id="${parked.id}"]`)?.focus({preventScroll:true});toast('This card is in the dock. Drag its branch back to edit.');return;}
   if(expandAncestors(state,id)){save();render();}
   checkpoint(); editing=id;
   const el=cardsEl.querySelector(`[data-id="${id}"]`);
@@ -209,10 +217,10 @@ function startEditing(id) {
   layout();focusMarkdownEditor(editor);updateStats();reveal(id);
 }
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
-function reveal(id){if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
+function reveal(id){if(dockRoot(state,id)){setDock(true);return;}if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
 function replaceDraft(next,message,view={zoom:1,scrollLeft:0,scrollTop:0}){
-  finishEditing();checkpoint();state=next;for(const card of state.cards)card.text=storedText(card.text);
+  finishEditing();checkpoint();setDock(false);state=next;for(const card of state.cards)card.text=storedText(card.text);
   zoom=view.zoom;$('#reset-view').textContent=Math.round(zoom*100)+'%';save();render();
   const restoreView=()=>viewport.scrollTo({left:view.scrollLeft,top:view.scrollTop,behavior:'instant'});
   restoreView();
@@ -248,60 +256,132 @@ function saveDocument(){
   }catch(error){toast(error.message||'Could not save the document.');}
 }
 function download(){finishEditing();const markdown=exportMarkdown(state);if(!markdown){toast('Write a little something first.');return;}downloadFile(markdown,'.md','text/markdown;charset=utf-8');toast('Your words, all together.');}
-function startDrag(event,id){
- if(event.button!==0)return;
+function setDock(open,temporary=false,slowClose=false){
+ clearTimeout(dockCloseTimer);
+ dockOpen=open;dockTemporary=open&&temporary;
+ const panel=$('#dock'),button=$('#dock-toggle');
+ panel.classList.toggle('settled-close',!open&&slowClose);
+ if(!open&&panel.contains(document.activeElement))button.focus({preventScroll:true});
+ panel.classList.toggle('is-open',open);panel.inert=!open;
+ button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'Hide dock':'Show dock');
+ button.title=(open?'Hide dock':'Show dock')+' (⌘/Ctrl Shift D)';
+}
+function renderDock(){
+ const roots=state.cards.filter(c=>c.docked),numbers=new Map(orderedCards(state).map((c,i)=>[c.id,i+1]));
+ const count=roots.reduce((total,c)=>total+1+orderedCards(state,c.id).length,0);
+ $('#dock-count').textContent=count?String(count):'';$('#dock-toggle').classList.toggle('has-cards',roots.length>0);
+ const list=$('#dock-cards');list.replaceChildren();
+ for(const card of roots){
+   const number=numbers.get(card.id),total=1+orderedCards(state,card.id).length;
+   const el=document.createElement('article');el.className='dock-card';el.dataset.id=card.id;el.tabIndex=0;el.setAttribute('aria-label',`Docked card ${number}, ${total} ${total===1?'card':'cards'}`);
+   const handle=document.createElement('button');handle.className='drag-handle';handle.innerHTML='<span aria-hidden="true">⠿</span>';handle.setAttribute('aria-label',`Move docked card ${number}`);handle.title='Drag back to the canvas';
+   handle.addEventListener('pointerdown',e=>startDrag(e,card.id,true));
+   const content=document.createElement('div');content.className='card-content dock-preview';content.innerHTML=preview(card.text);content.inert=true;
+   const meta=document.createElement('div');meta.className='dock-card-meta';meta.textContent=String(number).padStart(2,'0')+(total>1?` · ${total} cards`:'');
+   el.append(handle,content,meta);el.addEventListener('pointerdown',e=>{if(e.target===handle||handle.contains(e.target))return;startDrag(e,card.id,true);});list.append(el);
+ }
+}
+$('#dock-toggle').addEventListener('pointerdown',e=>e.preventDefault());
+$('#dock-toggle').addEventListener('click',()=>{if(!dragSession)setDock(!dockOpen);});
+$('#dock-close').addEventListener('click',()=>{if(!dragSession)setDock(false);});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&dragSession){e.preventDefault();e.stopImmediatePropagation();cancelActiveDrag?.();return;}
+ if(!e.isComposing&&!e.altKey&&(e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key.toLowerCase()==='d'&&!document.querySelector('dialog[open]')){
+   e.preventDefault();e.stopImmediatePropagation();if(!e.repeat&&!dragSession)setDock(!dockOpen);return;
+ }
+ if(e.key==='Escape'&&dockOpen&&!dragSession&&!document.querySelector('dialog[open]')){e.preventDefault();e.stopImmediatePropagation();setDock(false);}
+},true);
+function startDrag(event,id,fromDock=false){
+ if(event.button!==0||dragSession)return;
+ clearTimeout(dockCloseTimer);
  event.preventDefault();event.stopPropagation();finishEditing();
- const source=cardsEl.querySelector(`[data-id="${id}"]`),origin=source.getBoundingClientRect(),card=state.cards.find(c=>c.id===id);
- const branch=new Set([id,...orderedCards(state,id).map(c=>c.id)]),sourceColumn=depth(state,card),step=485*zoom;
- const startX=event.clientX,startY=event.clientY,startScrollX=viewport.scrollLeft;
- const maxColumn=Math.max(0,...visibleCards(state).filter(c=>!branch.has(c.id)).map(c=>depth(state,c)))+1;
- let active=false,ghost=null,label=null,target=null,pointerX=startX,pointerY=startY,scrollFrame;
- const clearDrop=()=>cardsEl.querySelectorAll('.drop-before,.drop-after,.drop-child').forEach(el=>el.classList.remove('drop-before','drop-after','drop-child'));
+ const source=(fromDock?$('#dock-cards'):cardsEl).querySelector(`[data-id="${id}"]`);
+ if(!source)return;
+ const origin=source.getBoundingClientRect(),branch=new Set([id,...orderedCards(state,id).map(c=>c.id)]);
+ const startX=event.clientX,startY=event.clientY,grabX=startX-origin.left,grabY=startY-origin.top;
+ const available=visibleCards(state).filter(c=>!branch.has(c.id));
+ const maxColumn=available.length?Math.max(0,...available.map(c=>depth(state,c)))+1:0;
+ let active=false,ghost=null,label=null,target=null,pointerX=startX,pointerY=startY,scrollFrame,option=event.altKey;
+ dragSession=true;
+ const clearDrop=()=>{cardsEl.querySelectorAll('.drop-before,.drop-after,.drop-child').forEach(el=>el.classList.remove('drop-before','drop-after','drop-child'));$('#dock').classList.remove('drop-ready');};
+ const dockBounds=()=>{const panel=$('#dock'),r=panel.getBoundingClientRect(),right=document.documentElement.clientWidth-parseFloat(getComputedStyle(panel).right);return {left:right-r.width,right,top:r.top,bottom:r.bottom};};
+ const overDock=()=>{const r=dockBounds();return dockOpen&&pointerX>=r.left&&pointerX<=r.right&&pointerY>=r.top&&pointerY<=r.bottom;};
+ function syncOption(){
+   if(!active||fromDock)return;
+   if(option&&!dockOpen)setDock(true,true);
+   else if(!option&&dockTemporary)setDock(false);
+ }
  function updateDrop(){
-   const baseLeft=origin.left-sourceColumn*step-(viewport.scrollLeft-startScrollX);
-   const centerX=pointerX+origin.left+origin.width/2-startX;
-   const column=Math.max(0,Math.min(maxColumn,Math.round((centerX-baseLeft-origin.width/2)/step)));
-   ghost.style.left=(baseLeft+column*step)+'px';ghost.style.top=(origin.top+pointerY-startY)+'px';
-   const rects=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.getBoundingClientRect()]));
-   const bounds=viewport.getBoundingClientRect();
-   target=pointerX>=bounds.left&&pointerX<=bounds.right&&pointerY>=bounds.top&&pointerY<=bounds.bottom?findDropTarget(state,id,column,pointerY,rects):null;
+   if(!active)return;
+   const baseLeft=board.getBoundingClientRect().left+canvasBaseX*zoom,step=485*zoom;
+   const width=360*zoom,centerX=pointerX+(fromDock?width/2-grabX:origin.width/2-grabX);
+   const column=Math.max(0,Math.min(maxColumn,Math.round((centerX-baseLeft-width/2)/step)));
+   const inDock=overDock();
+   ghost.style.left=(inDock?pointerX-grabX:baseLeft+column*step)+'px';ghost.style.top=(pointerY-grabY)+'px';
+   const rects=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.getBoundingClientRect()])),bounds=viewport.getBoundingClientRect();
+   target=inDock?(fromDock?null:{mode:'dock'}):pointerX>=bounds.left&&pointerX<=bounds.right&&pointerY>=bounds.top&&pointerY<=bounds.bottom?findDropTarget(state,id,column,pointerY,rects):null;
    clearDrop();
-   if(target?.highlightId)cardsEl.querySelector(`[data-id="${target.highlightId}"]`).classList.add(target.mode==='child'?'drop-child':target.before?'drop-before':'drop-after');
+   if(target?.mode==='dock')$('#dock').classList.add('drop-ready');
+   if(target?.highlightId)cardsEl.querySelector(`[data-id="${target.highlightId}"]`)?.classList.add(target.mode==='child'?'drop-child':target.before?'drop-before':'drop-after');
    const count=branch.size===1?'1 card':`${branch.size} cards`;
-   label.textContent=target?`${count} · column ${column+1}${target.mode==='child'?' · attach as child':''}`:'No place to move here';
+   label.textContent=target?.mode==='dock'?`Dock ${count}`:target?`${count} · column ${column+1}${target.mode==='child'?' · attach as child':''}`:'No place to move here';
    ghost.classList.toggle('invalid-drop',!target);
  }
  function autoScroll(){
    if(!active)return;
-   const r=viewport.getBoundingClientRect();
-   if(pointerY<r.top+60)viewport.scrollTop-=12;else if(pointerY>r.bottom-60)viewport.scrollTop+=12;
-   if(pointerX<r.left+60)viewport.scrollLeft-=12;else if(pointerX>r.right-60)viewport.scrollLeft+=12;
+   if(overDock()){
+     const list=$('#dock-cards'),r=list.getBoundingClientRect();
+     if(pointerY<r.top+45)list.scrollTop-=9;else if(pointerY>r.bottom-45)list.scrollTop+=9;
+   }else{
+     const r=viewport.getBoundingClientRect(),right=dockOpen?Math.min(r.right,dockBounds().left):r.right;
+     if(pointerX>=r.left&&pointerX<=right){
+       if(pointerY<r.top+60)viewport.scrollTop-=12;else if(pointerY>r.bottom-60)viewport.scrollTop+=12;
+       if(pointerX<r.left+60)viewport.scrollLeft-=12;else if(pointerX>right-60)viewport.scrollLeft+=12;
+     }
+   }
    updateDrop();scrollFrame=requestAnimationFrame(autoScroll);
  }
  function move(e){
-   pointerX=e.clientX;pointerY=e.clientY;
+   pointerX=e.clientX;pointerY=e.clientY;option=e.altKey;
    if(!active&&Math.hypot(pointerX-startX,pointerY-startY)<5)return;
    if(!active){
-     active=true;for(const el of cardsEl.children)if(branch.has(el.dataset.id))el.classList.add('dragging');
-     ghost=source.cloneNode(true);ghost.classList.remove('dragging');ghost.classList.add('drag-ghost');ghost.removeAttribute('data-id');ghost.removeAttribute('tabindex');ghost.setAttribute('aria-hidden','true');ghost.inert=true;
-     ghost.style.width=origin.width+'px';ghost.style.minHeight=origin.height+'px';
+     active=true;document.body.classList.add('card-drag-active');
+     for(const el of cardsEl.children)if(branch.has(el.dataset.id))el.classList.add('dragging');source.classList.add('dragging');
+     ghost=source.cloneNode(true);ghost.className='card drag-ghost';ghost.removeAttribute('data-id');ghost.removeAttribute('tabindex');ghost.setAttribute('aria-hidden','true');ghost.inert=true;
+     ghost.style.width=(360*zoom)+'px';ghost.style.minHeight=Math.min(origin.height,260)+'px';
      label=document.createElement('div');label.className='drag-label';ghost.append(label);document.body.append(ghost);
-     board.style.width=Math.max(parseFloat(board.style.width),positions.get(id).x-sourceColumn*485+maxColumn*485+430)+'px';
-     autoScroll();
+     board.style.width=Math.max(parseFloat(board.style.width),canvasBaseX+maxColumn*485+430)+'px';
+     syncOption();autoScroll();
    }
-   updateDrop();
+   syncOption();updateDrop();
  }
- function cancel(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();end({type:'pointercancel'});}}
+ function key(e){
+   if(e.key==='Escape'&&e.type==='keydown'){e.preventDefault();e.stopImmediatePropagation();end({type:'pointercancel'});return;}
+   if(e.key==='Alt'){option=e.type==='keydown';syncOption();updateDrop();}
+ }
  function end(e){
-   document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end);document.removeEventListener('keydown',cancel,true);
-   cancelAnimationFrame(scrollFrame);ghost?.remove();clearDrop();cardsEl.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+   if(e.type==='pointerup'&&active){pointerX=e.clientX;pointerY=e.clientY;updateDrop();}
+   document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end);document.removeEventListener('keydown',key,true);document.removeEventListener('keyup',key,true);window.removeEventListener('blur',cancel);
+   cancelAnimationFrame(scrollFrame);ghost?.remove();clearDrop();source.classList.remove('dragging');cardsEl.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));document.body.classList.remove('card-drag-active');dragSession=false;cancelActiveDrag=null;
    if(active&&target&&e.type!=='pointercancel'){
      checkpoint();
-     if(moveBranch(state,id,target.parent,target.column,target.anchorId,target.before)){save();render();reveal(id);toast('Card and its children moved.');}
-     else{undoStack.pop();layout();updateStats();}
-   }else layout();
+     const parked=target.mode==='dock';
+     const moved=parked?dockBranch(state,id):fromDock?restoreDockBranch(state,id,target):moveBranch(state,id,target.parent,target.column,target.anchorId,target.before);
+     if(moved){
+       if(parked)setDock(true);
+       else if(fromDock||dockTemporary)setDock(false);
+       save();render();
+       // Show the saved card in its new home before gently closing the dock.
+       if(parked)dockCloseTimer=setTimeout(()=>setDock(false,false,true),350);
+       // Keep the canvas where the user placed the branch; no extra recentering.
+       if(!parked)cardsEl.querySelector(`[data-id="${id}"]`)?.focus({preventScroll:true});
+       toast(parked?'Branch docked.':fromDock?'Branch returned to the canvas.':'Card and its children moved.');
+     }else{undoStack.pop();layout();updateStats();}
+   }else{if(dockTemporary)setDock(false);layout();}
  }
- document.addEventListener('pointermove',move);document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);document.addEventListener('keydown',cancel,true);
+ function cancel(){end({type:'pointercancel'});}
+ cancelActiveDrag=cancel;
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);document.addEventListener('keydown',key,true);document.addEventListener('keyup',key,true);window.addEventListener('blur',cancel);
 }
 document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button,.branch-toggle,#focus-toggle,#save-document,#reset-view'))finishEditing();});
 document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!e.repeat)saveDocument();}});

@@ -1,7 +1,7 @@
-import { siblings } from './model-v3.mjs';
+import { siblings } from './model-v3.mjs?v=dock1';
 
 export function visibleCards(state,parent=null){
-  return siblings(state,parent).flatMap(card=>[card,...(card.collapsed===true?[]:visibleCards(state,card.id))]);
+  return siblings(state,parent).filter(card=>!card.docked).flatMap(card=>[card,...(card.collapsed===true?[]:visibleCards(state,card.id))]);
 }
 
 export function toggleBranch(state,id){

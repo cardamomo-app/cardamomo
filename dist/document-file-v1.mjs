@@ -1,4 +1,4 @@
-import { importMarkdown } from './markdown-import-v2.mjs';
+import { importMarkdown } from './markdown-import-v2.mjs?v=dock1';
 
 const invalid = () => new Error('This Cardamomo document is damaged or invalid. Your draft is unchanged.');
 
@@ -8,10 +8,12 @@ function cleanDocument(value) {
     if (!card || typeof card.id !== 'string' || !/^[\w-]{1,128}$/.test(card.id) ||
         typeof card.text !== 'string' || (card.parent !== null && typeof card.parent !== 'string') ||
         (card.column !== undefined && (!Number.isSafeInteger(card.column) || card.column < 0)) ||
-        (card.collapsed !== undefined && typeof card.collapsed !== 'boolean')) throw invalid();
+        (card.collapsed !== undefined && typeof card.collapsed !== 'boolean') ||
+        (card.docked !== undefined && (typeof card.docked !== 'boolean' || (card.docked && card.parent !== null)))) throw invalid();
     return { id: card.id, parent: card.parent, text: card.text,
       ...(card.column === undefined ? {} : { column: card.column }),
-      ...(card.collapsed === undefined ? {} : { collapsed: card.collapsed }) };
+      ...(card.collapsed === undefined ? {} : { collapsed: card.collapsed }),
+      ...(card.docked === undefined ? {} : { docked: card.docked }) };
   });
   const byId = new Map(cards.map(card => [card.id, card]));
   if (byId.size !== cards.length) throw invalid();
@@ -42,7 +44,7 @@ function cleanView(view = {}) {
 }
 
 export function serializeDocument(state, view) {
-  return JSON.stringify({ format: 'cardamomo', version: 1,
+  return JSON.stringify({ format: 'cardamomo', version: state.cards.some(card=>card.docked) ? 2 : 1,
     document: cleanDocument(state), view: cleanView(view) }, null, 2) + '\n';
 }
 
@@ -50,7 +52,7 @@ export function parseDocument(source) {
   let file;
   try { file = JSON.parse(source.replace(/^\uFEFF/, '')); } catch { throw invalid(); }
   if (!file || file.format !== 'cardamomo') throw invalid();
-  if (file.version !== 1) throw new Error('This Cardamomo file uses an unsupported version. Please update Cardamomo before opening it.');
+  if (![1, 2].includes(file.version)) throw new Error('This Cardamomo file uses an unsupported version. Please update Cardamomo before opening it.');
   return { state: cleanDocument(file.document), view: cleanView(file.view) };
 }
 

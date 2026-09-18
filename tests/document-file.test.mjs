@@ -47,7 +47,7 @@ test('Markdown still imports by headings, including headingless paragraphs in th
 test('unsupported versions and malformed documents produce clear errors', () => {
   const file = JSON.parse(serializeDocument(state));
   assert.throws(() => parseDocument('not JSON'), /damaged or invalid/);
-  assert.throws(() => parseDocument(JSON.stringify({ ...file, version: 2 })), /unsupported version/);
+  assert.throws(() => parseDocument(JSON.stringify({ ...file, version: 3 })), /unsupported version/);
   assert.throws(() => parseDocument(JSON.stringify({ ...file, format: 'other' })), /damaged or invalid/);
   for (const cards of [[], [null], [{ id: 'bad"id', parent: null, text: '' }],
     [{ id: 'a', parent: null, text: '', collapsed: 'yes' }],

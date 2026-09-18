@@ -1,5 +1,5 @@
-import { depth, siblings } from './model-v3.mjs';
-import { visibleCards } from './branch-view-v1.mjs';
+import { depth, siblings } from './model-v3.mjs?v=dock1';
+import { visibleCards } from './branch-view-v1.mjs?v=dock1';
 
 export function navigationTarget(state,id,key){
   const card=state.cards.find(c=>c.id===id);

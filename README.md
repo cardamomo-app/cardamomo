@@ -48,7 +48,7 @@ Opening a card for writing centers its column in the viewport. Extra space beyon
 
 ### Document toolbar
 
-The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
+The controls run left to right: **Undo, Redo · Dock, New, Open, Save, Export**.
 
 | Control | What it does |
 | --- | --- |
@@ -56,6 +56,7 @@ The controls run left to right: **Undo, Redo · New, Open, Save, Export**.
 | Save status | Shows whether the draft has saved in this browser. |
 | Undo ↶ | Restores a previous draft state, including structural changes. |
 | Redo ↷ | Reapplies the last undone draft change. |
+| Dock | Opens a side panel for temporarily parking cards and their branches. The tray fills subtly when it holds cards. |
 | Blank page | Starts a new document with one empty card. Undo can restore the previous draft. |
 | Open folder | Opens a `.cardamomo` document or a Markdown file and replaces the current draft. Undo can restore the previous draft. |
 | Save (disk icon) | Downloads a `.cardamomo` document with its complete card structure, folds, zoom, and canvas position. |
@@ -114,6 +115,14 @@ Drag the handle at the top of a card to reorder it or move it to another column.
 
 Click the horizontal line leaving a card to fold its descendants. Click the square to expand them. Nested folds retain their own state, and folded writing remains saved and included in exports.
 
+### Parking cards in the dock
+
+Hold **Option/Alt while dragging** to slide the dock in from the right. Drop a card inside to park its entire branch. Its children collapse together, and the panel closes so you can navigate to another part of the document.
+
+Open the dock before New document, or press **Cmd/Ctrl + Shift + D**, then drag a parked card back onto the canvas. The branch returns collapsed, with its children and nested folds intact. The panel overlays the canvas without shifting it. Drag handles appear on hover or keyboard focus; Escape cancels a drag or closes the dock. Undo and redo restore moves into and out of the dock.
+
+Parked cards are included in browser autosave and `.cardamomo` files. Markdown export appends their branches after the main document, in dock order. Links to parked cards open the dock; return the branch to the canvas to edit it.
+
 ### Splitting a card
 
 Press **Cmd/Ctrl + Enter** while editing to split at the cursor. The text after the cursor moves to a new sibling below, which opens for writing. If text is selected, that selection stays in the lower card. Existing children remain attached to the upper card.
@@ -155,7 +164,9 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
 | Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
-| Escape | Leaves focus mode, finishes editing, or cancels an active drag. |
+| Cmd/Ctrl + Shift + D | Shows or hides the dock. |
+| Option/Alt while dragging | Reveals the dock to park the dragged branch. |
+| Escape | Cancels an active drag, closes the dock, leaves focus mode, or finishes editing. |
 | F | Enters focus mode when outside editable text. Typing in cards and the document title is unaffected. |
 
 ### Create cards
@@ -193,7 +204,7 @@ These shortcuts save the current writing and open the destination in edit mode. 
 
 ### Save a Cardamomo document
 
-Use the **Save** disk icon or **Cmd/Ctrl + S** to download a `.cardamomo` file. It preserves the document title, exact Markdown text, empty and headingless cards, card order, parent–child connections, column positions, every collapsed branch, zoom, and canvas scroll position.
+Use the **Save** disk icon or **Cmd/Ctrl + S** to download a `.cardamomo` file. It preserves the document title, exact Markdown text, empty and headingless cards, card order, parent–child connections, column positions, every collapsed branch, docked branches, zoom, and canvas scroll position.
 
 Move that file to another device and use **Open** to continue with the same document structure. Cardamomo files are versioned JSON documents; no account or server is needed. Files are validated before replacing the draft, and a damaged or unsupported file leaves the current writing intact.
 
@@ -209,7 +220,7 @@ Text before the first heading becomes a separate card. A file without headings o
 
 ### Export Markdown
 
-Export follows the tree in reading order: a root card, its children and their descendants, then the next root card. Folded cards are included. Card contents are joined with blank lines; empty cards do not add text, and column positions do not automatically create headings.
+Export follows the tree in reading order: a root card, its children and their descendants, then the next root card. Docked branches follow the main document, in dock order. Folded cards are included. Card contents are joined with blank lines; empty cards do not add text, and column positions do not automatically create headings.
 
 Use Save for an exact card-structure backup. A Markdown export is a portable writing document. Reopening it rebuilds cards from its Markdown headings; it does not restore arbitrary card boundaries, folding, or layout.
 

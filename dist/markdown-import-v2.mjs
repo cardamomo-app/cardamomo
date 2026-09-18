@@ -1,4 +1,4 @@
-import { newCard } from './model-v3.mjs';
+import { newCard } from './model-v3.mjs?v=dock1';
 
 export function importMarkdown(source, filename, lexer) {
   if (typeof source !== 'string') throw new Error('The file could not be read as text.');
