@@ -48,3 +48,32 @@ test('drop targeting supports existing columns, empty next columns, and excludes
  assert.deepEqual(findDropTarget(s,'b',2,550,rects),{parent:'e',column:2,anchorId:null,highlightId:'e',mode:'child'});
  assert.equal(findDropTarget(s,'a',3,150,rects),null);
 });
+
+
+test('split to the right creates a first child without moving existing branches',()=>{
+ const s=fixture(),b=s.cards.find(c=>c.id==='b'),c=s.cards.find(c=>c.id==='c');
+ b.text='First\n\nSecond';b.collapsed=true;c.collapsed=true;
+ const existing=structuredClone(c);
+ const next=splitCard(s,'b','First','Second','right');
+ assert.equal(next.parent,'b');assert.equal(depth(s,next),2);
+ assert.equal(next.text,'Second');assert.equal(b.text,'First');
+ assert.deepEqual(c,existing);
+ assert.deepEqual(orderedCards(s).map(c=>c.id),['a','b',next.id,'c','d','e']);
+ assert.equal(exportMarkdown(s),'a\n\nFirst\n\nSecond\n\nc\n\nd\n\ne\n');
+ assert(validState(s));
+});
+
+test('first-child splitting works after parent reordering and at text boundaries',()=>{
+ const s=fixture();
+ assert(moveBranch(s,'a',null,0,'d',false));
+ const next=splitCard(s,'a','','All the text','right');
+ assert.deepEqual(orderedCards(s,'a').map(c=>c.id),[next.id,'b','c']);
+ assert.equal(s.cards.find(c=>c.id==='a').text,'');
+ const empty=splitCard(s,next.id,'All the text','','right');
+ assert.equal(empty.parent,next.id);assert.equal(empty.text,'');assert.equal(depth(s,empty),2);
+ assert(validState(s));
+ const before=JSON.stringify(s);
+ assert.equal(splitCard(s,'missing','a','b','right'),null);
+ assert.equal(splitCard(s,'a','a','b','left'),null);
+ assert.equal(JSON.stringify(s),before);
+});

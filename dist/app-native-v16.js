@@ -14,7 +14,7 @@ import { installFocusMode } from './focus-mode-v1.mjs?v=3';
 import { navigationTarget } from './card-navigation-v1.mjs?v=dock1';
 import { planMerge, mergeCard } from './card-merge-v1.mjs?v=dock1';
 import { createMarkdownEditor, readMarkdownEditor, focusMarkdownEditor } from './native-editor-v1.mjs?v=2';
-import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs?v=dock1';
+import { newCard, siblings, depth, addCard, moveCard, moveBranch, splitCard, removeCard, orderedCards, exportMarkdown, validState } from './model-v3.mjs?v=split1';
 const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),cardsEl=$('#cards'),additions=$('#additions'),connections=$('#connections');
 const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
@@ -181,11 +181,12 @@ function startEditing(id) {
       if(mode!==null){structuralUndoCard=null;c.text=readCardEditor(editor);scheduleSave();layout();toast(caseModes[mode]);}
       return;
     }
-    if(!e.isComposing&&!e.altKey&&(e.metaKey||e.ctrlKey)&&e.key==='Enter'){
+    if(!e.isComposing&&(e.metaKey||e.ctrlKey)&&e.key==='Enter'&&(!e.altKey||!e.shiftKey)){
       e.preventDefault();e.stopPropagation();
+      if(e.repeat)return;
       const parts=readEditorSplit(editor);if(!parts)return;
       finishEditing();checkpoint();
-      const next=splitCard(state,id,storedText(parts.before),storedText(parts.after));
+      const next=splitCard(state,id,storedText(parts.before),storedText(parts.after),e.altKey?'right':'after');
       save();render();startEditing(next.id);focusEditorStart(cardsEl.querySelector('.card-editor'));reveal(next.id);
       structuralUndoCard=next.id;return;
     }

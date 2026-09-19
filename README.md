@@ -127,6 +127,8 @@ Parked cards are included in browser autosave and `.cardamomo` files. Markdown e
 
 Press **Cmd/Ctrl + Enter** while editing to split at the cursor. The text after the cursor moves to a new sibling below, which opens for writing. If text is selected, that selection stays in the lower card. Existing children remain attached to the upper card.
 
+Press **Cmd/Ctrl + Option/Alt + Enter** to split into a new child in the next column instead. It becomes the first child, opens for writing, and keeps any selected text with the rest of the continuation. Existing children remain attached to the original card in their current order. Folded children are revealed so the new card is visible; nested folds stay intact. Undo restores the original text and structure.
+
 ### Merging cards
 
 Use **Option/Alt + Ctrl + Shift + an arrow** to merge the active card with a neighbor.
@@ -163,6 +165,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Ctrl + 1 / 2 / 3 / 4 | Changes the current Markdown line to H1 / H2 / H3 / H4, replacing any existing heading prefix. No selection needed. |
 | Ctrl + 0 | Removes the current line's heading prefix, keeping its text. |
 | Cmd/Ctrl + Enter | Splits the card at the cursor and opens the new card below. |
+| Cmd/Ctrl + Option/Alt + Enter | Splits at the cursor into a new first child in the next column. |
 | Cmd/Ctrl + S | Downloads a `.cardamomo` document while keeping your current editing position. |
 | Cmd/Ctrl + Shift + D | Shows or hides the dock. |
 | Option/Alt while dragging | Reveals the dock to park the dragged branch. |

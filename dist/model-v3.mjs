@@ -23,10 +23,17 @@ export function moveBranch(s,id,parent,column,anchorId=null,before=false){
  return true;
 }
 export function moveCard(s,id,targetId,before){const target=s.cards.find(c=>c.id===targetId);return !!target&&moveBranch(s,id,target.parent,depth(s,target),targetId,before);}
-export function splitCard(s,id,before,after){
+export function splitCard(s,id,before,after,direction='after'){
  const card=s.cards.find(c=>c.id===id);
- if(!card||typeof before!=='string'||typeof after!=='string')return null;
- const next=addCard(s,id,'after');card.text=before;next.text=after;return next;
+ if(!card||typeof before!=='string'||typeof after!=='string'||!['after','right'].includes(direction))return null;
+ let next;
+ if(direction==='right'){
+  next=newCard(id,depth(s,card)+1);
+  // Keep the continuation before existing children in reading order.
+  const first=siblings(s,id)[0];
+  s.cards.splice(first?s.cards.indexOf(first):s.cards.indexOf(card)+1,0,next);
+ }else next=addCard(s,id,'after');
+ card.text=before;next.text=after;return next;
 }
 export function removeCard(s,id){const c=s.cards.find(c=>c.id===id);if(!c)return;const ordered=orderedCards(s),kids=siblings(s,id);const lifted=orderedCards(s,id).map(n=>[n,Math.max(0,depth(s,n)-1)]);lifted.forEach(([n,column])=>{n.column=column;});kids.forEach(k=>k.parent=c.parent);s.cards=ordered.filter(n=>n.id!==id);if(!s.cards.length)s.cards.push(newCard());}
 export function orderedCards(s,parent=null){const list=siblings(s,parent);const roots=parent===null?[...list.filter(c=>!c.docked),...list.filter(c=>c.docked)]:list;return roots.flatMap(c=>[c,...orderedCards(s,c.id)]);}

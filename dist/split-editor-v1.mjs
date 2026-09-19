@@ -1,6 +1,6 @@
 import { readMarkdownEditor } from './native-editor-v1.mjs';
 
-// A selected passage stays in the lower card: splitting never deletes text.
+// A selected passage stays in the new card: splitting never deletes text.
 export function readEditorSplit(editor) {
   const selection=editor.ownerDocument.getSelection();
   if(!selection?.rangeCount)return null;
