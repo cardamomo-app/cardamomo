@@ -1,3 +1,5 @@
+import { trimWordSelection } from './word-selection-v1.mjs';
+import { completeSymbolPair } from './symbol-pairs-v1.mjs?v=2';
 import { dockRoot, dockBranch, restoreDockBranch } from './dock-v1.mjs';
 import { cardLinkTarget, isCardLink, storeCardLinks, displayCardLinks } from './card-links-v1.mjs?v=dock1';
 import { openDocument, serializeDocument } from './document-file-v1.mjs?v=dock1';
@@ -146,6 +148,9 @@ function startEditing(id) {
   const editor=createMarkdownEditor(displayCardLinks(c.text,state,lexLinks));
   el.querySelector('.card-content').replaceWith(editor);
   let pendingLayout=0;
+  editor.addEventListener('dblclick',event=>{
+    if(!event.shiftKey&&!event.metaKey&&!event.ctrlKey&&!event.altKey)trimWordSelection(editor);
+  });
   editor.addEventListener('paste',event=>{
     if(pasteMarkdown(editor,event)){
       resetCaseCycle(editor);structuralUndoCard=null;
@@ -161,6 +166,10 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(completeSymbolPair(editor,e)){
+      resetCaseCycle(editor);structuralUndoCard=null;
+      c.text=readCardEditor(editor);scheduleSave();layout();return;
+    }
     if(!e.isComposing&&!e.altKey&&!e.shiftKey&&(e.metaKey||e.ctrlKey)&&/^[0-4]$/.test(e.key)){
       e.preventDefault();e.stopPropagation();
       if(e.repeat)return;

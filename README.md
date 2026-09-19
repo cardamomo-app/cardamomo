@@ -109,6 +109,8 @@ Case cycling advances from the selection’s current casing; mixed casing starts
 
 Pasting rich text converts bold, italics, lists, headings, links, quotes, and code into Markdown. Source fonts, colors, and backgrounds are discarded immediately, so pasted content uses Cardamomo’s editor styling. Plain Markdown keeps its original syntax. Paste supports the normal typing undo.
 
+Typing `(`, `"`, `[`, or `{` in a card inserts the matching closing symbol and leaves the cursor inside. If text is selected, the pair wraps it and keeps the text selected, ready for another wrapper. Typing a closing symbol already beside the cursor moves past it without duplicating it. Pair insertion uses the normal typing undo. Pasting text and editing the document title are unaffected.
+
 ### Moving and folding branches
 
 Drag the handle at the top of a card to reorder it or move it to another column. Drop above or below another card to make it a sibling, or beside a parent in the preceding column to attach it as a child. Its descendants travel with it. Press Escape to cancel a drag.
