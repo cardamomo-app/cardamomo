@@ -5,6 +5,10 @@ const converter = new TurndownService({
   headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced',
   emDelimiter: '*', strongDelimiter: '**'
 });
+converter.addRule('highlight', {
+  filter: 'mark',
+  replacement: content => content.trim() ? `==${content}==` : content
+});
 converter.addRule('strikethrough', {
   filter: ['del', 's', 'strike'],
   replacement: content => content.trim() ? `~~${content}~~` : content
@@ -45,7 +49,7 @@ export function clipboardMarkdown(data, sanitize = html => DOMPurify.sanitize(ht
   }
   // Plain Markdown copied from another editor often has incidental HTML wrappers.
   // Keep its literal markers instead of escaping them as rich-text punctuation.
-  if (plain && !root.querySelector('strong,b,em,i,ul,ol,h1,h2,h3,h4,h5,h6,pre,code,blockquote,a[href],hr,del,s,strike,table')) return plain;
+  if (plain && !root.querySelector('strong,b,em,i,ul,ol,h1,h2,h3,h4,h5,h6,pre,code,blockquote,a[href],hr,del,s,strike,table,mark')) return plain;
   return converter.turndown(root) || plain;
 }
 

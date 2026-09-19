@@ -111,6 +111,8 @@ Pasting rich text converts bold, italics, lists, headings, links, quotes, and co
 
 Typing `(`, `"`, `[`, or `{` in a card inserts the matching closing symbol and leaves the cursor inside. If text is selected, the pair wraps it and keeps the text selected, ready for another wrapper. Typing a closing symbol already beside the cursor moves past it without duplicating it. Pair insertion uses the normal typing undo. Pasting text and editing the document title are unaffected.
 
+Use `==highlight==` for a soft sage highlight that adapts to light and dark mode. **Ctrl + 9** toggles it on selected text and keeps the selection, or inserts `====` with the cursor in the middle when nothing is selected. Highlights can contain bold, italic, and links. Each selected line gets its own markers; code keeps literal equals signs. Save and Markdown export retain the `==` syntax, which requires highlight support in other Markdown apps.
+
 ### Moving and folding branches
 
 Drag the handle at the top of a card to reorder it or move it to another column. Drop above or below another card to make it a sibling, or beside a parent in the preceding column to attach it as a child. Its descendants travel with it. Press Escape to cancel a drag.
@@ -160,6 +162,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Enter | Starts editing a focused card; while editing, starts a new paragraph. |
 | Shift + Enter | Inserts a Markdown hard line break while editing. |
 | Cmd/Ctrl + B | Toggles bold on selected text; with no selection, inserts bold markers with the cursor between them. |
+| Ctrl + 9 | Toggles highlight on selected text; with no selection, inserts highlight markers with the cursor between them. |
 | Cmd/Ctrl + I | Toggles italic on selected text; with no selection, inserts italic markers with the cursor between them. |
 | Cmd/Ctrl + D | Toggles inline code on selected text; with no selection, inserts backticks with the cursor between them. |
 | Cmd/Ctrl + K | Toggles a hyperlink; keeps the label selected, or places the cursor inside empty brackets. Uses a copied web address as the destination. |

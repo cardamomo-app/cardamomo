@@ -120,3 +120,6 @@
 [data-theme="dark"] #dock-toggle[aria-expanded="true"]{background:#3b4334}
 .focus-mode #dock{top:20px;bottom:64px}
 @media(max-width:650px){#dock{top:120px;bottom:64px;right:12px;width:min(310px,calc(100vw - 24px))}}
+
+.card-content mark{background:#dfe6d4;color:inherit;border-radius:3px;padding:.05em .16em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+[data-theme="dark"] .card-content mark{background:#4a5642;color:inherit}

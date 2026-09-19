@@ -1,3 +1,4 @@
+import { toggleMarkdownHighlight, surroundingHighlight } from './highlight-v1.mjs';
 import { readMarkdownEditor } from './native-editor-v1.mjs';
 import { replaceSelectedMarkdown, selectionTextOffset, textPoint } from './selection-edit-v1.mjs';
 
@@ -77,7 +78,7 @@ export function formatMarkdownSelection(editor, kind) {
   const range = selection.getRangeAt(0).cloneRange();
   if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return false;
   if (range.collapsed) {
-    const marker = kind === 'code' ? '`' : kind === 'bold' ? '**' : '*';
+    const marker = kind === 'highlight' ? '==' : kind === 'code' ? '`' : kind === 'bold' ? '**' : '*';
     const offset = selectionTextOffset(editor, range.startContainer, range.startOffset);
     if (!replaceSelectedMarkdown(editor, range, marker + marker)) return false;
     const caret = doc.createRange();
@@ -91,7 +92,7 @@ export function formatMarkdownSelection(editor, kind) {
   const before = doc.createRange(), after = doc.createRange();
   before.selectNodeContents(editor); before.setEnd(range.startContainer, range.startOffset);
   after.selectNodeContents(editor); after.setStart(range.endContainer, range.endOffset);
-  const wrappers = (kind === 'code' ? surroundingCode : surroundingEmphasis)(readMarkdownEditor(before.cloneContents()), markdown, readMarkdownEditor(after.cloneContents()));
+  const wrappers = (kind === 'highlight' ? surroundingHighlight : kind === 'code' ? surroundingCode : surroundingEmphasis)(readMarkdownEditor(before.cloneContents()), markdown, readMarkdownEditor(after.cloneContents()));
   if (wrappers.left) {
     const start = selectionTextOffset(editor, range.startContainer, range.startOffset) - wrappers.left.length;
     const end = selectionTextOffset(editor, range.endContainer, range.endOffset) + wrappers.right.length;
@@ -99,7 +100,7 @@ export function formatMarkdownSelection(editor, kind) {
     range.setEnd(...textPoint(editor, end, true));
     markdown = wrappers.left + markdown + wrappers.right;
   }
-  const formatted = kind === 'code' ? toggleMarkdownCode(markdown) : toggleMarkdownEmphasis(markdown, kind);
+  const formatted = kind === 'highlight' ? toggleMarkdownHighlight(markdown) : kind === 'code' ? toggleMarkdownCode(markdown) : toggleMarkdownEmphasis(markdown, kind);
   if (formatted === markdown) return false;
   return replaceSelectedMarkdown(editor, range, formatted);
 }

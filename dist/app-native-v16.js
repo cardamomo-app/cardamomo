@@ -1,12 +1,13 @@
+import { highlightExtension } from './highlight-v1.mjs';
 import { trimWordSelection } from './word-selection-v1.mjs';
 import { completeSymbolPair } from './symbol-pairs-v1.mjs?v=2';
 import { dockRoot, dockBranch, restoreDockBranch } from './dock-v1.mjs';
 import { cardLinkTarget, isCardLink, storeCardLinks, displayCardLinks } from './card-links-v1.mjs?v=dock1';
 import { openDocument, serializeDocument } from './document-file-v1.mjs?v=dock1';
-import { pasteMarkdown } from './clipboard-v1.mjs';
+import { pasteMarkdown } from './clipboard-v1.mjs?v=2';
 import { formatCurrentHeading } from './heading-v1.mjs';
 import { formatMarkdownLink } from './link-v1.mjs';
-import { formatMarkdownSelection } from './formatting-v1.mjs?v=4';
+import { formatMarkdownSelection } from './formatting-v1.mjs?v=5';
 import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs?v=dock1';
@@ -22,6 +23,7 @@ const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
 let structuralUndoCard=null,dockOpen=false,dockTemporary=false,dockCloseTimer,dragSession=false,cancelActiveDrag=null,canvasBaseX=70;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));if(validState(saved))state=saved;}catch{storageFailed=true;}
+marked.use(highlightExtension);
 const lexLinks=text=>marked.lexer(text,{gfm:true});
 const storedText=text=>storeCardLinks(text,state,lexLinks);
 const readCardEditor=editor=>storedText(readMarkdownEditor(editor));
@@ -166,6 +168,14 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(!e.isComposing&&e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey&&e.key==='9'){
+      e.preventDefault();e.stopPropagation();
+      if(!e.repeat&&formatMarkdownSelection(editor,'highlight')){
+        resetCaseCycle(editor);structuralUndoCard=null;
+        c.text=readCardEditor(editor);scheduleSave();layout();
+      }
+      return;
+    }
     if(completeSymbolPair(editor,e)){
       resetCaseCycle(editor);structuralUndoCard=null;
       c.text=readCardEditor(editor);scheduleSave();layout();return;
