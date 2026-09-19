@@ -1,3 +1,4 @@
+import { insertEditorLineBreak } from './line-break-v1.mjs';
 import { highlightExtension } from './highlight-v1.mjs';
 import { trimWordSelection } from './word-selection-v1.mjs';
 import { completeSymbolPair } from './symbol-pairs-v1.mjs?v=2';
@@ -168,6 +169,12 @@ function startEditing(id) {
     if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
   });
   editor.addEventListener('keydown',e=>{
+    if(insertEditorLineBreak(editor,e)){
+      resetCaseCycle(editor);structuralUndoCard=null;
+      c.text=readCardEditor(editor);scheduleSave();
+      if(!pendingLayout)pendingLayout=requestAnimationFrame(()=>{pendingLayout=0;layout();});
+      return;
+    }
     if(!e.isComposing&&e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey&&e.key==='9'){
       e.preventDefault();e.stopPropagation();
       if(!e.repeat&&formatMarkdownSelection(editor,'highlight')){

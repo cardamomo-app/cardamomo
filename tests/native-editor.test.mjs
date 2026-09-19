@@ -39,3 +39,18 @@ test('browser caret placeholders are excluded, including after Select All and De
   assert.equal(readMarkdownEditor(element('div', element('p', element('br')))), '');
   assert.equal(readMarkdownEditor(element('div', text('First'), element('div', text('Second')))), 'First\n\nSecond');
 });
+
+test('line breaks stay within a paragraph through saving and reopening', () => {
+  const original = element('div',
+    element('p', text('First'), element('br'), text('Second'), element('br'), text('Third')),
+    element('p', text('Next paragraph'))
+  );
+  const markdown = readMarkdownEditor(original);
+  assert.equal(markdown, 'First  \nSecond  \nThird\n\nNext paragraph');
+  assert.equal(readMarkdownEditor(createMarkdownEditor(markdown, doc)), markdown);
+});
+
+test('consecutive line breaks and a break in an empty paragraph retain their hard-break markers', () => {
+  assert.equal(readMarkdownEditor(element('div', element('p', text('First'), element('br'), element('br'), text('Second')))), 'First  \n  \nSecond');
+  assert.equal(readMarkdownEditor(element('div', element('p', element('br'), element('br')))), '  \n');
+});
