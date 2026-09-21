@@ -86,6 +86,7 @@ The first child connects with a straight horizontal line at the higher of its mi
 | Zoom percentage | Resets zoom to 100% around the card nearest the center of your current view. |
 | Moon / sun | Switches between light and dark mode. Your preference is saved in this browser. |
 | Focus icon | Requests true page fullscreen and hides the header. Counts and controls stay visible at the bottom, dimmed until hovered. Click again or press Escape to leave. Requires browser fullscreen support. |
+| Collapse / expand all | Expands all canvas branches if any are folded; otherwise collapses them all. Works in both views; docked cards stay unchanged. |
 | Document preview icon | Displays cards as a wider editable stack, with numbers, branch dragging, and insertion controls on hover. |
 | Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
 | ? | Opens the writing guide. |
@@ -116,9 +117,9 @@ Use `==highlight==` for a soft sage highlight that adapts to light and dark mode
 
 ### Document preview
 
-The document icon immediately to the right of Full focus switches to **Preview mode**. Press **P** outside editable text to toggle it. Cards form a centered reading column up to 760 pixels wide, in the same parent-first order used by Markdown export, with their numbers retained. Click any card to edit it using the usual Markdown editor.
+The document icon to the right of Collapse / expand all switches to **Preview mode**. Press **P** outside editable text to toggle it. Cards form a centered reading column up to 760 pixels wide, in the same parent-first order used by Markdown export, with their numbers retained. Click any card to edit it using the usual Markdown editor.
 
-Preview includes folded descendants without changing their fold state. Parked cards remain in the dock. Switching back restores the branch canvas's previous zoom and position; preview also works in fullscreen and dark mode.
+Preview respects the same folds as the branch view. Cards with descendants have a numbered square at the bottom left, revealed when you hover over that corner or focus the control with Tab: filled means collapsed, outlined means expanded. Click it to fold or unfold the branch. A faint, unnumbered outline remains visible on collapsed branches, inviting you to hover and expand them. The number counts all descendants, and nested folds retain their state. Changes carry across both views and are saved with the document. Parked cards remain in the dock. Switching back restores the branch canvas's previous zoom and position; preview also works in fullscreen and dark mode.
 
 Hover a gap to reveal an insertion button, or reach it with Tab. The new card becomes a sibling of the following card, at the same column and with the same parent. At the document end it becomes a sibling of the last card. This places it exactly where the gap appears without changing existing connections.
 
@@ -130,7 +131,7 @@ Preview is a view of the same document: editing, save, and export work normally.
 
 Drag the handle at the top of a card to reorder it or move it to another column. Drop above or below another card to make it a sibling, or beside a parent in the preceding column to attach it as a child. Its descendants travel with it. Press Escape to cancel a drag.
 
-Click the horizontal line leaving a card to fold its descendants. Click the square to expand them. Nested folds retain their own state, and folded writing remains saved and included in exports.
+Click the horizontal line leaving a card to fold its descendants. Click the square to expand them. Nested folds retain their own state, and folded writing remains saved and included in exports. Use the collapse/expand-all button immediately left of Preview, or press **C** outside editable text, to expand every canvas branch if any are folded, or collapse them all otherwise. This works in both views and leaves docked branches unchanged. Undo restores the previous fold states.
 
 ### Parking cards in the dock
 
@@ -190,6 +191,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Escape | Cancels an active drag, closes the dock, leaves focus mode, or finishes editing. |
 | F | Enters focus mode when outside editable text. Typing in cards and the document title is unaffected. |
 | P | Toggles document preview outside editable text. |
+| C | Expands all canvas branches if any are folded; otherwise collapses them all. Ignored inside editable text. |
 
 ### Create cards
 

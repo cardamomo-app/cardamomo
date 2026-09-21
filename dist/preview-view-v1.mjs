@@ -1,8 +1,8 @@
 import { orderedCards, depth, addCard, newCard } from './model-v3.mjs?v=split1';
+import { visibleCards } from './branch-view-v1.mjs?v=dock1';
 
 export function previewCards(state) {
-  return state.cards.filter(card => card.parent === null && !card.docked)
-    .flatMap(card => [card, ...orderedCards(state, card.id)]);
+  return visibleCards(state);
 }
 
 // A gap belongs to the following card's sibling group, keeping its exact reading position.
