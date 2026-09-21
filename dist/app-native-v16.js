@@ -429,7 +429,10 @@ function startDrag(event,id,fromDock=false){
      active=true;document.body.classList.add('card-drag-active');
      for(const el of cardsEl.children)if(branch.has(el.dataset.id))el.classList.add('dragging');source.classList.add('dragging');
      ghost=source.cloneNode(true);ghost.className='card drag-ghost';ghost.removeAttribute('data-id');ghost.removeAttribute('tabindex');ghost.setAttribute('aria-hidden','true');ghost.inert=true;
-     ghost.style.width=((previewMode?previewWidth:360)*zoom)+'px';ghost.style.minHeight=Math.min(origin.height,260)+'px';
+     ghost.style.width=((previewMode?previewWidth:360)*zoom)+'px';
+     if(previewMode){
+       ghost.classList.add('preview-drag-ghost');ghost.style.setProperty('--drag-zoom',zoom);
+     }else ghost.style.minHeight=Math.min(origin.height,260)+'px';
      label=document.createElement('div');label.className='drag-label';ghost.append(label);document.body.append(ghost);
      if(!previewMode)board.style.width=Math.max(parseFloat(board.style.width),canvasBaseX+maxColumn*485+430)+'px';
      syncOption();autoScroll();
