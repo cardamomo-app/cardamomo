@@ -1,3 +1,4 @@
+import { previewCards, previewDropTarget, insertPreviewCard, isPreviewShortcut } from './preview-view-v1.mjs';
 import { insertEditorLineBreak } from './line-break-v1.mjs';
 import { highlightExtension } from './highlight-v1.mjs';
 import { trimWordSelection } from './word-selection-v1.mjs';
@@ -23,6 +24,8 @@ const $=s=>document.querySelector(s), viewport=$('#viewport'),board=$('#board'),
 const STORAGE_KEY='cardamomo.draft.v1';
 let state={title:'Untitled',cards:[newCard()]},undoStack=[],redoStack=[],editing=null,zoom=1,positions=new Map(),saveTimer,toastTimer,storageFailed=false;
 let structuralUndoCard=null,dockOpen=false,dockTemporary=false,dockCloseTimer,dragSession=false,cancelActiveDrag=null,canvasBaseX=70;
+let previewMode=false,branchView=null,previewZoom=1,previewWidth=760;
+const displayedCards=()=>previewMode?previewCards(state):visibleCards(state);
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));if(validState(saved))state=saved;}catch{storageFailed=true;}
 marked.use(highlightExtension);
 const lexLinks=text=>marked.lexer(text,{gfm:true});
@@ -36,7 +39,7 @@ function scheduleSave(){$('#save-status').textContent='saving…';clearTimeout(s
 function toast(text){clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').classList.add('visible');toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2800);}
 function updateStats(){const words=state.cards.reduce((n,c)=>n+(c.text.trim().match(/\S+/g)?.length||0),0);$('#word-count').textContent=`${words} ${words===1?'word':'words'}`;$('#card-count').textContent=`${state.cards.length} ${state.cards.length===1?'card':'cards'}`;$('#undo').disabled=!undoStack.length;$('#redo').disabled=!redoStack.length;}
 function preview(text){return text?DOMPurify.sanitize(marked.parse(text,{gfm:true}),{FORBID_TAGS:['style','iframe','form','input','button'],FORBID_ATTR:['style']}):'';}
-function render(){cardsEl.replaceChildren();$('#document-title').value=state.title;const numbers=new Map(orderedCards(state).map((c,i)=>[c.id,i]));for(const c of visibleCards(state)){const i=numbers.get(c.id);
+function render(){cardsEl.replaceChildren();$('#document-title').value=state.title;const numbers=new Map(orderedCards(state).map((c,i)=>[c.id,i]));for(const c of displayedCards()){const i=numbers.get(c.id);
  const el=document.createElement('article');el.className='card';el.dataset.id=c.id;el.tabIndex=0;el.setAttribute('aria-label',`Card ${i+1}, column ${depth(state,c)+1}`);
  const handle=document.createElement('button');handle.className='drag-handle';handle.innerHTML='<span aria-hidden="true">⠿</span>';handle.title='Drag to reorder · Alt + ↑ / ↓';handle.setAttribute('aria-label',`Move card ${i+1}`);handle.addEventListener('pointerdown',e=>startDrag(e,c.id));handle.addEventListener('click',e=>e.stopPropagation());
  const del=document.createElement('button');del.className='delete-card';del.textContent='×';del.title='Remove card (undo available)';del.setAttribute('aria-label',`Remove card ${i+1}`);del.addEventListener('click',e=>{e.stopPropagation();finishEditing();checkpoint();removeCard(state,c.id);save();render();toast('Card removed. Undo to bring it back.');});
@@ -50,9 +53,9 @@ function render(){cardsEl.replaceChildren();$('#document-title').value=state.tit
    }else{a.target='_blank';a.rel='noopener noreferrer';a.addEventListener('click',event=>event.stopPropagation());}
  });content.querySelectorAll('img').forEach(img=>{img.addEventListener('load',layout);img.addEventListener('error',layout);});
  const order=document.createElement('span');order.className='card-order';order.textContent=String(i+1).padStart(2,'0');el.append(handle,del,content,order);el.addEventListener('click',()=>startEditing(c.id));
- el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=visibleCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
+ el.addEventListener('keydown',e=>{if(e.target.closest('.card-editor'))return;if(e.key==='Enter'){e.preventDefault();startEditing(c.id);}if(e.altKey&&['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const list=previewMode?previewCards(state).filter(n=>n.id===c.id||!orderedCards(state,c.id).some(k=>k.id===n.id)):visibleCards(state).filter(n=>depth(state,n)===depth(state,c)),i=list.findIndex(n=>n.id===c.id),before=e.key==='ArrowUp',target=list[i+(before?-1:1)];if(target){checkpoint();moveCard(state,c.id,target.id,before);save();render();cardsEl.querySelector(`[data-id="${c.id}"]`).focus();}}});cardsEl.append(el);
  }renderDock();updateStats();layout();}
-function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,frame=viewport.getBoundingClientRect(),baseX=Math.max(pad,(frame.width/zoom-w)/2),baseY=Math.max(90,(frame.height/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map(),gapBetween=createBranchSpacing(view);
+function layout(){if(previewMode){layoutPreview();return;}for(const el of cardsEl.children)el.style.width='360px';const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,frame=viewport.getBoundingClientRect(),baseX=Math.max(pad,(frame.width/zoom-w)/2),baseY=Math.max(90,(frame.height/zoom-270)/2),heights=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.offsetHeight])),spans=new Map(),gapBetween=createBranchSpacing(view);
  canvasBaseX=baseX;
  function span(c){const kids=siblings(view,c.id),h=Math.max(heights.get(c.id)||218,kids.reduce((v,n,i)=>v+span(n)+(i?gapBetween(kids[i-1],n):0),0));spans.set(c.id,h);return h;}siblings(view,null).forEach(span);positions=new Map();
  function place(list,start){let y=start;for(const [i,c] of list.entries()){const col=depth(state,c);positions.set(c.id,{x:baseX+col*(w+gapX),y,h:heights.get(c.id)||218,col});place(siblings(view,c.id),y);y+=spans.get(c.id)+gapBetween(c,list[i+1]);}}place(siblings(view,null),baseY);
@@ -89,6 +92,56 @@ function layout(){const view={cards:visibleCards(state)},w=360,gapX=125,pad=70,f
    }else plus(right+38,p.y+p.h/2,c.id,'right','Add child to the right');
  }
 }
+function layoutPreview(){
+ const frame=viewport.getBoundingClientRect(),padding=24,gap=32;
+ previewWidth=Math.min(760,Math.max(120,frame.width/zoom-padding*2));
+ canvasBaseX=Math.max(padding,(frame.width/zoom-previewWidth)/2);
+ board.style.zoom=zoom;board.style.width=(previewWidth+canvasBaseX*2)+'px';
+ connections.replaceChildren();connections.setAttribute('width',0);connections.setAttribute('height',0);additions.replaceChildren();
+ for(const el of cardsEl.children)el.style.width=previewWidth+'px';
+ positions=new Map();let y=48;const numbers=new Map(orderedCards(state).map((card,index)=>[card.id,index+1]));
+ function gapButton(beforeId,top){
+   const button=document.createElement('button');button.className='preview-insert';button.innerHTML='<span aria-hidden="true">+</span>';
+   button.style.left=canvasBaseX+'px';button.style.top=top+'px';button.style.width=previewWidth+'px';
+   const number=beforeId?numbers.get(beforeId):null;
+   button.setAttribute('aria-label',number?`Insert card before card ${number}`:'Add card at end of document');
+   button.title=number?'Insert here · same parent as the following card':'Append here · same parent as the last card';
+   button.addEventListener('pointerdown',event=>event.preventDefault());
+   button.addEventListener('click',()=>{finishEditing();checkpoint();const card=insertPreviewCard(state,beforeId);if(!card){undoStack.pop();updateStats();return;}save();render();startEditing(card.id);});
+   additions.append(button);
+ }
+ for(const el of cardsEl.children){
+   gapButton(el.dataset.id,y-gap);const h=el.offsetHeight;
+   positions.set(el.dataset.id,{x:canvasBaseX,y,h,col:0});el.style.left=canvasBaseX+'px';el.style.top=y+'px';y+=h+gap;
+ }
+ gapButton(null,cardsEl.children.length?y-gap:48);
+ board.style.height=Math.max(frame.height/zoom,y+64)+'px';
+}
+function syncPreviewButton(){
+ document.documentElement.classList.toggle('preview-mode',previewMode);
+ const button=$('#preview-toggle'),label=previewMode?'Return to branch mode':'Enter preview mode';
+ button.setAttribute('aria-pressed',String(previewMode));button.setAttribute('aria-label',label);button.title=label+' (P)';
+ viewport.setAttribute('aria-label',previewMode?'Document preview':'Writing canvas');
+}
+function togglePreview(){
+ if(dragSession||document.querySelector('dialog[open]'))return;
+ const frame=viewport.getBoundingClientRect(),mid=frame.top+frame.height/2;
+ let anchor=editing||document.activeElement?.closest?.('#cards .card')?.dataset.id;
+ if(!anchor){let distance=Infinity;for(const el of cardsEl.children){const r=el.getBoundingClientRect(),d=Math.hypot((r.left+r.right)/2-(frame.left+frame.width/2),Math.max(r.top-mid,0,mid-r.bottom));if(d<distance){distance=d;anchor=el.dataset.id;}}}
+ const previous={zoom,scrollLeft:Math.max(0,viewport.scrollLeft),scrollTop:Math.max(0,viewport.scrollTop)};
+ finishEditing();setDock(false);
+ if(!previewMode){branchView=previous;previewMode=true;zoom=previewZoom;}
+ else{previewZoom=zoom;previewMode=false;zoom=branchView?.zoom||1;}
+ syncPreviewButton();$('#reset-view').textContent=Math.round(zoom*100)+'%';render();
+ if(previewMode){viewport.scrollTo({left:0,top:0,behavior:'instant'});cardsEl.querySelector(`[data-id="${anchor}"]`)?.scrollIntoView({behavior:'instant',block:'center',inline:'center'});}
+ else viewport.scrollTo({left:branchView?.scrollLeft||0,top:branchView?.scrollTop||0,behavior:'instant'});
+ $('#preview-toggle').focus({preventScroll:true});
+}
+$('#preview-toggle').addEventListener('pointerdown',event=>event.preventDefault());
+$('#preview-toggle').addEventListener('click',togglePreview);
+document.addEventListener('keydown',event=>{
+ if(!dragSession&&isPreviewShortcut(event,document.activeElement,!!document.querySelector('dialog[open]'))){event.preventDefault();event.stopPropagation();togglePreview();}
+});
 function insert(id,dir){finishEditing();checkpoint();const c=addCard(state,id,dir);save();render();startEditing(c.id);}
 function merge(id,key){
   const plan=planMerge(state,id,key);
@@ -113,7 +166,8 @@ cardsEl.addEventListener('keydown',event=>{
   // One deliberate key press performs one card operation.
   if(event.repeat)return;
   const id=card.dataset.id;
-  const target=navigate?navigationTarget(state,id,event.key):null;
+  const reading=previewMode?previewCards(state):null;
+  const target=navigate?(reading&&['ArrowUp','ArrowDown'].includes(event.key)?reading[reading.findIndex(c=>c.id===id)+(event.key==='ArrowUp'?-1:1)]:navigationTarget(state,id,event.key)):null;
   if(navigate&&!target)return;
   // Match the right-hand plus, including branches whose children are folded.
   if(create&&direction==='right'&&siblings(state,id).length)return;
@@ -144,7 +198,7 @@ function startEditing(id) {
   if(!c)return;
   const parked=dockRoot(state,id);
   if(parked){setDock(true);$('#dock-cards').querySelector(`[data-id="${parked.id}"]`)?.focus({preventScroll:true});toast('This card is in the dock. Drag its branch back to edit.');return;}
-  if(expandAncestors(state,id)){save();render();}
+  if(!previewMode&&expandAncestors(state,id)){save();render();}
   checkpoint(); editing=id;
   const el=cardsEl.querySelector(`[data-id="${id}"]`);
   el.classList.add('editing');
@@ -244,10 +298,10 @@ function startEditing(id) {
   layout();focusMarkdownEditor(editor);updateStats();reveal(id);
 }
 function finishEditing(){if(!editing)return;editing=null;if(undoStack.at(-1)===clone())undoStack.pop();save();render();}
-function reveal(id){if(dockRoot(state,id)){setDock(true);return;}if(expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
+function reveal(id){if(dockRoot(state,id)){setDock(true);return;}if(!previewMode&&expandAncestors(state,id)){save();render();}cardsEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest',inline:'center'});}
 function undo(redo=false){finishEditing();const source=redo?redoStack:undoStack,target=redo?undoStack:redoStack;if(!source.length)return;target.push(clone());state=JSON.parse(source.pop());save();render();toast(redo?'Change restored':'Change undone');}
 function replaceDraft(next,message,view={zoom:1,scrollLeft:0,scrollTop:0}){
-  finishEditing();checkpoint();setDock(false);state=next;for(const card of state.cards)card.text=storedText(card.text);
+  finishEditing();checkpoint();setDock(false);previewMode=false;branchView=null;syncPreviewButton();state=next;for(const card of state.cards)card.text=storedText(card.text);
   zoom=view.zoom;$('#reset-view').textContent=Math.round(zoom*100)+'%';save();render();
   const restoreView=()=>viewport.scrollTo({left:view.scrollLeft,top:view.scrollTop,behavior:'instant'});
   restoreView();
@@ -277,7 +331,7 @@ function saveDocument(){
   // Input events already synchronize the card text; keep the current editor and caret.
   save();
   try{
-    const contents=serializeDocument(state,{zoom,scrollLeft:Math.max(0,viewport.scrollLeft),scrollTop:Math.max(0,viewport.scrollTop)});
+    const contents=serializeDocument(state,previewMode&&branchView?branchView:{zoom,scrollLeft:Math.max(0,viewport.scrollLeft),scrollTop:Math.max(0,viewport.scrollTop)});
     downloadFile(contents,'.cardamomo','application/json;charset=utf-8');
     toast('Cardamomo document downloaded.');
   }catch(error){toast(error.message||'Could not save the document.');}
@@ -326,7 +380,7 @@ function startDrag(event,id,fromDock=false){
  if(!source)return;
  const origin=source.getBoundingClientRect(),branch=new Set([id,...orderedCards(state,id).map(c=>c.id)]);
  const startX=event.clientX,startY=event.clientY,grabX=startX-origin.left,grabY=startY-origin.top;
- const available=visibleCards(state).filter(c=>!branch.has(c.id));
+ const available=displayedCards().filter(c=>!branch.has(c.id));
  const maxColumn=available.length?Math.max(0,...available.map(c=>depth(state,c)))+1:0;
  let active=false,ghost=null,label=null,target=null,pointerX=startX,pointerY=startY,scrollFrame,option=event.altKey;
  dragSession=true;
@@ -341,17 +395,17 @@ function startDrag(event,id,fromDock=false){
  function updateDrop(){
    if(!active)return;
    const baseLeft=board.getBoundingClientRect().left+canvasBaseX*zoom,step=485*zoom;
-   const width=360*zoom,centerX=pointerX+(fromDock?width/2-grabX:origin.width/2-grabX);
+   const width=(previewMode?previewWidth:360)*zoom,centerX=pointerX+(fromDock?width/2-grabX:origin.width/2-grabX);
    const column=Math.max(0,Math.min(maxColumn,Math.round((centerX-baseLeft-width/2)/step)));
    const inDock=overDock();
-   ghost.style.left=(inDock?pointerX-grabX:baseLeft+column*step)+'px';ghost.style.top=(pointerY-grabY)+'px';
+   ghost.style.left=(inDock?pointerX-grabX:previewMode?baseLeft:baseLeft+column*step)+'px';ghost.style.top=(pointerY-grabY)+'px';
    const rects=new Map([...cardsEl.children].map(el=>[el.dataset.id,el.getBoundingClientRect()])),bounds=viewport.getBoundingClientRect();
-   target=inDock?(fromDock?null:{mode:'dock'}):pointerX>=bounds.left&&pointerX<=bounds.right&&pointerY>=bounds.top&&pointerY<=bounds.bottom?findDropTarget(state,id,column,pointerY,rects):null;
+   target=inDock?(fromDock?null:{mode:'dock'}):pointerX>=bounds.left&&pointerX<=bounds.right&&pointerY>=bounds.top&&pointerY<=bounds.bottom?(previewMode?previewDropTarget(state,id,pointerY,rects):findDropTarget(state,id,column,pointerY,rects)):null;
    clearDrop();
    if(target?.mode==='dock')$('#dock').classList.add('drop-ready');
    if(target?.highlightId)cardsEl.querySelector(`[data-id="${target.highlightId}"]`)?.classList.add(target.mode==='child'?'drop-child':target.before?'drop-before':'drop-after');
    const count=branch.size===1?'1 card':`${branch.size} cards`;
-   label.textContent=target?.mode==='dock'?`Dock ${count}`:target?`${count} · column ${column+1}${target.mode==='child'?' · attach as child':''}`:'No place to move here';
+   label.textContent=target?.mode==='dock'?`Dock ${count}`:target?`${count} · ${previewMode?'move branch · ':''}column ${target.column+1}${target.mode==='child'?' · attach as child':''}`:'No place to move here';
    ghost.classList.toggle('invalid-drop',!target);
  }
  function autoScroll(){
@@ -375,9 +429,9 @@ function startDrag(event,id,fromDock=false){
      active=true;document.body.classList.add('card-drag-active');
      for(const el of cardsEl.children)if(branch.has(el.dataset.id))el.classList.add('dragging');source.classList.add('dragging');
      ghost=source.cloneNode(true);ghost.className='card drag-ghost';ghost.removeAttribute('data-id');ghost.removeAttribute('tabindex');ghost.setAttribute('aria-hidden','true');ghost.inert=true;
-     ghost.style.width=(360*zoom)+'px';ghost.style.minHeight=Math.min(origin.height,260)+'px';
+     ghost.style.width=((previewMode?previewWidth:360)*zoom)+'px';ghost.style.minHeight=Math.min(origin.height,260)+'px';
      label=document.createElement('div');label.className='drag-label';ghost.append(label);document.body.append(ghost);
-     board.style.width=Math.max(parseFloat(board.style.width),canvasBaseX+maxColumn*485+430)+'px';
+     if(!previewMode)board.style.width=Math.max(parseFloat(board.style.width),canvasBaseX+maxColumn*485+430)+'px';
      syncOption();autoScroll();
    }
    syncOption();updateDrop();
@@ -410,7 +464,7 @@ function startDrag(event,id,fromDock=false){
  cancelActiveDrag=cancel;
  document.addEventListener('pointermove',move);document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);document.addEventListener('keydown',key,true);document.addEventListener('keyup',key,true);window.addEventListener('blur',cancel);
 }
-document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button,.branch-toggle,#focus-toggle,#save-document,#reset-view'))finishEditing();});
+document.addEventListener('pointerdown',e=>{if(editing&&!e.target.closest('.card')&&!e.target.closest('.add-button,.branch-toggle,.preview-insert,#preview-toggle,#focus-toggle,#save-document,#reset-view'))finishEditing();});
 document.addEventListener('keydown',e=>{const input=e.target.isContentEditable||e.target.matches('textarea,input');if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!input){e.preventDefault();undo(e.shiftKey);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!e.repeat)saveDocument();}});
 $('#undo').addEventListener('click',()=>undo());$('#redo').addEventListener('click',()=>undo(true));$('#export').addEventListener('click',download);$('#save-document').addEventListener('pointerdown',e=>e.preventDefault());$('#save-document').addEventListener('click',saveDocument);$('#document-title').addEventListener('focus',checkpoint);$('#document-title').addEventListener('input',e=>{state.title=e.target.value;scheduleSave();});$('#document-title').addEventListener('blur',()=>{if(!state.title.trim()){state.title='Untitled';$('#document-title').value=state.title;}save();});
 function setZoom(v){finishEditing();zoom=Math.max(.5,Math.min(1.5,v));$('#reset-view').textContent=Math.round(zoom*100)+'%';layout();}$('#zoom-in').addEventListener('click',()=>setZoom(zoom+.1));$('#zoom-out').addEventListener('click',()=>setZoom(zoom-.1));

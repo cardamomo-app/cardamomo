@@ -86,6 +86,7 @@ The first child connects with a straight horizontal line at the higher of its mi
 | Zoom percentage | Resets zoom to 100% around the card nearest the center of your current view. |
 | Moon / sun | Switches between light and dark mode. Your preference is saved in this browser. |
 | Focus icon | Requests true page fullscreen and hides the header. Counts and controls stay visible at the bottom, dimmed until hovered. Click again or press Escape to leave. Requires browser fullscreen support. |
+| Document preview icon | Displays cards as a wider editable stack, with numbers, branch dragging, and insertion controls on hover. |
 | Coffee cup | Opens a Ko-fi tip panel to support Cardamomo with a voluntary contribution. |
 | ? | Opens the writing guide. |
 
@@ -112,6 +113,18 @@ Pasting rich text converts bold, italics, lists, headings, links, quotes, and co
 Typing `(`, `"`, `[`, or `{` in a card inserts the matching closing symbol and leaves the cursor inside. If text is selected, the pair wraps it and keeps the text selected, ready for another wrapper. Typing a closing symbol already beside the cursor moves past it without duplicating it. Pair insertion uses the normal typing undo. Pasting text and editing the document title are unaffected.
 
 Use `==highlight==` for a soft sage highlight that adapts to light and dark mode. **Ctrl + 9** toggles it on selected text and keeps the selection, or inserts `====` with the cursor in the middle when nothing is selected. Highlights can contain bold, italic, and links. Each selected line gets its own markers; code keeps literal equals signs. Save and Markdown export retain the `==` syntax, which requires highlight support in other Markdown apps.
+
+### Document preview
+
+The document icon immediately to the right of Full focus switches to **Preview mode**. Press **P** outside editable text to toggle it. Cards form a centered reading column up to 760 pixels wide, in the same parent-first order used by Markdown export, with their numbers retained. Click any card to edit it using the usual Markdown editor.
+
+Preview includes folded descendants without changing their fold state. Parked cards remain in the dock. Switching back restores the branch canvas's previous zoom and position; preview also works in fullscreen and dark mode.
+
+Hover a gap to reveal an insertion button, or reach it with Tab. The new card becomes a sibling of the following card, at the same column and with the same parent. At the document end it becomes a sibling of the last card. This places it exactly where the gap appears without changing existing connections.
+
+Dragging a card moves its entire branch, including descendants, to the chosen gap. It adopts the following card's parent and column; descendants keep their relative columns and internal connections. Dropping within the moving branch is blocked. Option/Alt dragging to the dock and dragging back out also work in preview. Undo restores structural changes. Option/Alt + Ctrl + Up/Down navigates the reading sequence in this view.
+
+Preview is a view of the same document: editing, save, and export work normally. Cardamomo files continue to store the branch canvas position, rather than the preview's reading position.
 
 ### Moving and folding branches
 
@@ -176,6 +189,7 @@ Use **Undo**, or **Cmd/Ctrl + Z immediately after a split or merge**, to restore
 | Option/Alt while dragging | Reveals the dock to park the dragged branch. |
 | Escape | Cancels an active drag, closes the dock, leaves focus mode, or finishes editing. |
 | F | Enters focus mode when outside editable text. Typing in cards and the document title is unaffected. |
+| P | Toggles document preview outside editable text. |
 
 ### Create cards
 
