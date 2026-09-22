@@ -11,7 +11,7 @@ import { pasteMarkdown } from './clipboard-v1.mjs?v=2';
 import { formatCurrentHeading } from './heading-v1.mjs';
 import { formatMarkdownLink } from './link-v1.mjs';
 import { formatMarkdownSelection } from './formatting-v1.mjs?v=5';
-import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=2';
+import { cycleSelectedText, resetCaseCycle, caseModes } from './text-case-v1.mjs?v=3';
 import { readEditorSplit, focusEditorStart } from './split-editor-v1.mjs?v=2';
 import { findDropTarget } from './drop-target-v1.mjs?v=dock1';
 import { createBranchSpacing } from './branch-spacing-v1.mjs?v=dock1';

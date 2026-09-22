@@ -3,6 +3,8 @@ import { replaceSelectedMarkdown } from './selection-edit-v1.mjs';
 
 export const caseModes = ['lowercase', 'ALL CAPS', 'Sentence case', 'Word Case'];
 
+const connectingWords = new Set('a an the and as at but by for from in into nor of on onto or over per so than through to under upon via vs with yet'.split(' '));
+
 export function changeTextCase(text, mode) {
   if (mode === 0) return text.toLowerCase();
   if (mode === 1) return text.toUpperCase();
@@ -12,8 +14,12 @@ export function changeTextCase(text, mode) {
       (_, boundary, prefix, letter) => boundary + prefix + letter.toUpperCase());
   }
   if (mode === 3) {
-    return lower.replace(/\p{L}[\p{L}\p{M}\p{N}]*(?:['’][\p{L}\p{M}\p{N}]+)*/gu,
-      word => word.replace(/^\p{L}/u, letter => letter.toUpperCase()));
+    const words = /\p{L}[\p{L}\p{M}\p{N}]*(?:['’][\p{L}\p{M}\p{N}]+)*/gu;
+    const matches = [...lower.matchAll(words)];
+    const first = matches[0]?.index, last = matches.at(-1)?.index;
+    return lower.replace(words, (word, offset) =>
+      offset !== first && offset !== last && connectingWords.has(word)
+        ? word : word.replace(/^\p{L}/u, letter => letter.toUpperCase()));
   }
   throw new Error('Unknown text case');
 }
